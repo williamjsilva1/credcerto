@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CredCerto — Gestão de Empréstimos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --verde-900:#07231C;
+  --verde-800:#0C2E24;
+  --verde-700:#0E9B76;
+  --verde-600:#12B187;
+  --verde-500:#3DBE96;
+  --verde-100:#E1F5EE;
+  --creme-50:#F5F7F3;
+  --tinta-900:#0B1712;
+  --tinta-600:#4C5A54;
+  --tinta-400:#8B9992;
+  --laranja-500:#FF8C42;
+  --laranja-100:#FFEADB;
+  --lilas-500:#8B6BFF;
+  --lilas-100:#EDE8FF;
+  --azul-500:#3E7CFF;
+  --azul-100:#E4ECFF;
+  --vermelho-500:#E5484D;
+  --vermelho-100:#FCE3E4;
+  --branco:#FFFFFF;
+  --borda:#E4E9E4;
+  --shadow-sm: 0 1px 2px rgba(7,35,28,.06);
+  --shadow-md: 0 8px 24px rgba(7,35,28,.08);
+  --shadow-lg: 0 16px 48px rgba(7,35,28,.14);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+svg{ width:1em; height:1em; flex-shrink:0; vertical-align:-0.15em; }
+html,body{height:100%;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--creme-50);
+  color:var(--tinta-900);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{ font-family:'Sora',sans-serif; letter-spacing:-0.02em; }
+.mono{ font-family:'JetBrains Mono',monospace; font-variant-numeric: tabular-nums; }
+button{ font-family:inherit; cursor:pointer; border:none; background:none; }
+input,select,textarea{ font-family:inherit; }
+a{ color:inherit; text-decoration:none; }
+::selection{ background:var(--verde-100); }
+:focus-visible{ outline:2px solid var(--verde-600); outline-offset:2px; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+}
+
+/* ============ SHELL LAYOUT ============ */
+.app-shell{
+  display:grid;
+  grid-template-columns: 248px 1fr;
+  min-height:100vh;
+}
+.sidebar{
+  background: linear-gradient(180deg, var(--verde-900), #051912 85%);
+  color:#fff;
+  padding:24px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:sticky;
+  top:0;
+  height:100vh;
+}
+.brand{
+  display:flex; align-items:center; gap:10px;
+  padding:6px 10px 26px 10px;
+}
+.brand-mark{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--verde-500),var(--verde-700));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Sora',sans-serif;font-weight:800;color:#052018;font-size:16px;
+  box-shadow: 0 4px 14px rgba(18,177,135,.4);
+}
+.brand-name{ font-family:'Sora',sans-serif; font-weight:700; font-size:16.5px; color:#fff;}
+.brand-sub{ font-size:10.5px; color:rgba(255,255,255,.5); letter-spacing:.04em; text-transform:uppercase;}
+
+.nav-group-label{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:rgba(255,255,255,.35); padding:16px 12px 6px;
+  font-weight:600;
+}
+.nav-item{
+  display:flex; align-items:center; gap:12px;
+  padding:10px 12px; border-radius:10px;
+  color:rgba(255,255,255,.72);
+  font-size:14px; font-weight:500;
+  transition: background .15s ease, color .15s ease;
+  position:relative;
+}
+.nav-item svg{ width:18px; height:18px; flex-shrink:0; opacity:.9;}
+.nav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
+.nav-item.active{ background:rgba(61,190,150,.16); color:#fff; }
+.nav-item.active::before{
+  content:''; position:absolute; left:-16px; top:8px; bottom:8px; width:3px;
+  background:var(--verde-500); border-radius:0 4px 4px 0;
+}
+.nav-badge{
+  margin-left:auto; background:var(--laranja-500); color:#2b1400;
+  font-size:10px; font-weight:700; padding:1px 6px; border-radius:20px;
+}
+.sidebar-footer{
+  margin-top:auto; padding:12px; border-top:1px solid rgba(255,255,255,.08);
+  display:flex; align-items:center; gap:10px;
+}
+.avatar-sm{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--lilas-500),var(--azul-500));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px; font-weight:700; color:#fff;
+}
+.sidebar-footer-name{ font-size:13px; font-weight:600; color:#fff; }
+.sidebar-footer-role{ font-size:11px; color:rgba(255,255,255,.45); }
+
+.main{ padding:28px 34px 100px; max-width:1320px; }
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:26px; gap:16px; flex-wrap:wrap;
+}
+.page-title{ font-size:24px; font-weight:700; }
+.page-sub{ font-size:13.5px; color:var(--tinta-600); margin-top:2px; }
+.topbar-actions{ display:flex; gap:10px; align-items:center; }
+.search-box{
+  display:flex; align-items:center; gap:8px;
+  background:#fff; border:1px solid var(--borda); border-radius:12px;
+  padding:9px 14px; min-width:220px;
+}
+.search-box input{ border:none; outline:none; font-size:13.5px; width:100%; background:transparent; }
+.search-box svg{ width:16px;height:16px; color:var(--tinta-400); flex-shrink:0;}
+
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:12px;
+  font-size:13.5px; font-weight:600;
+  transition: transform .12s ease, box-shadow .12s ease, background .15s ease;
+}
+.btn svg{ width:16px; height:16px; }
+.btn:active{ transform:scale(.97); }
+.btn-primary{ background:var(--verde-700); color:#fff; box-shadow:0 6px 16px rgba(14,155,118,.28);}
+.btn-primary:hover{ background:var(--verde-600); }
+.btn-ghost{ background:#fff; color:var(--tinta-900); border:1px solid var(--borda); }
+.btn-ghost:hover{ background:var(--creme-50); }
+.btn-danger-ghost{ background:var(--vermelho-100); color:var(--vermelho-500); }
+.btn-sm{ padding:7px 12px; font-size:12.5px; border-radius:9px;}
+.btn-icon{ width:36px;height:36px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:#fff; border:1px solid var(--borda);}
+.btn-icon svg{ width:16px; height:16px; }
+.btn-icon:hover{ background:var(--creme-50); }
+
+/* ============ CARDS / KPI ============ */
+.grid{ display:grid; gap:18px; }
+.kpi-grid{ grid-template-columns: repeat(4, 1fr); margin-bottom:22px; }
+.card{
+  background:#fff; border-radius:var(--radius); padding:20px;
+  border:1px solid var(--borda); box-shadow: var(--shadow-sm);
+}
+.kpi-card{ position:relative; overflow:hidden; }
+.kpi-icon{
+  width:38px;height:38px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center; margin-bottom:14px;
+}
+.kpi-icon svg{ width:19px;height:19px; }
+.kpi-label{ font-size:12.5px; color:var(--tinta-600); font-weight:600; margin-bottom:6px;}
+.kpi-value{ font-size:23px; font-weight:700; font-family:'Sora',sans-serif; letter-spacing:-0.01em;}
+.kpi-delta{ font-size:11.5px; margin-top:8px; font-weight:600; display:flex; align-items:center; gap:4px;}
+.delta-up{ color:var(--verde-700); }
+.delta-down{ color:var(--vermelho-500); }
+
+.section-title{ font-size:15px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;}
+.two-col{ grid-template-columns: 1.4fr 1fr; align-items:start;}
+
+/* progress ring */
+.ring-wrap{ position:relative; width:112px; height:112px; margin:0 auto;}
+.ring-wrap svg{ width:112px; height:112px; transform:rotate(-90deg); }
+.ring-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.ring-center .val{ font-size:19px; font-weight:800; font-family:'Sora',sans-serif; }
+.ring-center .lbl{ font-size:9.5px; color:var(--tinta-600); text-transform:uppercase; letter-spacing:.05em;}
+
+/* tables */
+.table-wrap{ overflow-x:auto; border-radius:var(--radius); border:1px solid var(--borda); background:#fff;}
+table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px;}
+thead th{
+  text-align:left; padding:12px 16px; font-size:11px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--tinta-600); background:var(--creme-50);
+  border-bottom:1px solid var(--borda); font-weight:700; white-space:nowrap;
+}
+tbody td{ padding:13px 16px; border-bottom:1px solid var(--borda); vertical-align:middle;}
+tbody tr:last-child td{ border-bottom:none; }
+tbody tr{ transition:background .12s; }
+tbody tr:hover{ background:var(--creme-50); }
+.cell-name{ font-weight:600; display:flex; align-items:center; gap:10px;}
+.avatar-tiny{
+  width:30px;height:30px;border-radius:50%; flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px; font-weight:700; color:#fff;
+}
+
+.badge{ display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:700;}
+.badge-dot{ width:6px;height:6px;border-radius:50%;}
+.badge-ok{ background:var(--verde-100); color:var(--verde-700);}
+.badge-ok .badge-dot{ background:var(--verde-600);}
+.badge-warn{ background:var(--laranja-100); color:#b95c00;}
+.badge-warn .badge-dot{ background:var(--laranja-500);}
+.badge-bad{ background:var(--vermelho-100); color:var(--vermelho-500);}
+.badge-bad .badge-dot{ background:var(--vermelho-500);}
+.badge-info{ background:var(--azul-100); color:var(--azul-500);}
+.badge-info .badge-dot{ background:var(--azul-500);}
+.badge-neutral{ background:var(--creme-50); color:var(--tinta-600); border:1px solid var(--borda);}
+
+.chip-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+.chip{
+  padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:600;
+  background:#fff; border:1px solid var(--borda); color:var(--tinta-600);
+  transition:all .15s;
+}
+.chip.active{ background:var(--verde-900); color:#fff; border-color:var(--verde-900); }
+
+/* ============ CLIENT CARDS GRID (mobile-app style) ============ */
+.client-cards{ grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); }
+.client-card{
+  background:#fff; border-radius:var(--radius); border:1px solid var(--borda);
+  padding:18px; box-shadow:var(--shadow-sm); transition: box-shadow .15s, transform .15s; cursor:pointer;
+}
+.client-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
+.client-card-top{ display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+.client-card-name{ font-weight:700; font-size:14.5px;}
+.client-card-id{ font-size:11.5px; color:var(--tinta-600);}
+.client-card-bar{ height:6px; border-radius:6px; background:var(--creme-50); overflow:hidden; margin:10px 0 8px;}
+.client-card-bar-fill{ height:100%; background:linear-gradient(90deg,var(--verde-500),var(--verde-700)); border-radius:6px;}
+.client-card-nums{ display:flex; justify-content:space-between; font-size:12px; color:var(--tinta-600);}
+.client-card-nums b{ color:var(--tinta-900); font-family:'JetBrains Mono',monospace;}
+
+/* ============ MODAL ============ */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(7,20,16,.55); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center; z-index:200; padding:20px;
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+.modal{
+  background:#fff; border-radius:20px; width:100%; max-width:520px;
+  max-height:88vh; overflow-y:auto; box-shadow:var(--shadow-lg);
+  animation: modalIn .18s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes modalIn{ from{opacity:0; transform:translateY(14px) scale(.98)} to{opacity:1; transform:none} }
+.modal-header{ padding:20px 22px; border-bottom:1px solid var(--borda); display:flex; align-items:center; justify-content:space-between;}
+.modal-title{ font-size:16.5px; font-weight:700;}
+.modal-close{ width:30px;height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--tinta-600);}
+.modal-close:hover{ background:var(--creme-50); }
+.modal-body{ padding:22px; }
+.modal-footer{ padding:16px 22px; border-top:1px solid var(--borda); display:flex; justify-content:flex-end; gap:10px;}
+
+.form-divider{
+  font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--verde-700); margin:22px 0 12px; padding-top:16px; border-top:1px solid var(--borda);
+  display:flex; align-items:center; gap:6px;
+}
+.form-divider svg{ width:14px; height:14px; }
+.form-divider:first-child{ margin-top:0; padding-top:0; border-top:none; }
+.field{ margin-bottom:16px; }
+.field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:var(--tinta-700,#334); }
+.field input, .field select, .field textarea{
+  width:100%; padding:10px 12px; border:1px solid var(--borda); border-radius:10px;
+  font-size:13.5px; outline:none; transition:border-color .12s; background:#fff;
+}
+.field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--verde-600); box-shadow:0 0 0 3px var(--verde-100);}
+.field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field-hint{ font-size:11.5px; color:var(--tinta-400); margin-top:4px; }
+.seg{ display:flex; background:var(--creme-50); border-radius:10px; padding:3px; border:1px solid var(--borda);}
+.seg button{ flex:1; padding:8px; border-radius:8px; font-size:12px; font-weight:600; color:var(--tinta-600);}
+.seg button.active{ background:#fff; color:var(--verde-700); box-shadow:var(--shadow-sm);}
+
+/* ============ COBRANÇA RÁPIDA (signature element) ============ */
+.tap-flow{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:6px 0 0;}
+.tap-dots{ display:flex; gap:8px; margin-bottom:22px;}
+.tap-dot{ width:34px; height:5px; border-radius:6px; background:var(--borda); transition:background .2s;}
+.tap-dot.done{ background:var(--verde-600); }
+.tap-dot.current{ background:var(--verde-300,#9fe0c9); }
+.tap-avatar{
+  width:76px;height:76px;border-radius:50%; margin-bottom:14px;
+  display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; color:#fff;
+}
+.tap-amount{ font-family:'Sora',sans-serif; font-size:34px; font-weight:800; margin:10px 0 4px; }
+.tap-sub{ font-size:13px; color:var(--tinta-600); margin-bottom:22px;}
+.tap-btn{
+  width:100%; padding:16px; border-radius:14px; background:var(--verde-700); color:#fff;
+  font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:0 8px 22px rgba(14,155,118,.32);
+}
+.tap-btn:active{ transform:scale(.98); }
+.tap-btn.secondary{ background:#fff; color:var(--tinta-900); border:1px solid var(--borda); box-shadow:none; margin-top:10px;}
+.tap-methods{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; width:100%; margin-bottom:18px;}
+.tap-method{ padding:14px 8px; border-radius:12px; border:1.5px solid var(--borda); font-size:12px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:6px;}
+.tap-method svg{ width:20px; height:20px; color:var(--tinta-600);}
+.tap-method.active{ border-color:var(--verde-600); background:var(--verde-100); color:var(--verde-700);}
+.tap-method.active svg{ color:var(--verde-700);}
+.tap-success{ width:76px;height:76px;border-radius:50%; background:var(--verde-100); display:flex; align-items:center; justify-content:center; margin-bottom:16px; animation:pop .35s cubic-bezier(.3,1.5,.5,1);}
+@keyframes pop{ from{transform:scale(0)} to{transform:scale(1)} }
+.tap-success svg{ width:36px;height:36px; color:var(--verde-700);}
+
+/* ============ RECEIPT ============ */
+.receipt{
+  background:#fff; border:1.5px dashed var(--borda); border-radius:14px; padding:22px;
+  max-width:340px; margin:0 auto; font-size:12.5px;
+}
+.receipt-logo{ text-align:center; margin-bottom:6px; font-family:'Sora',sans-serif; font-weight:800; font-size:16px; color:var(--verde-700);}
+.receipt-sub{ text-align:center; color:var(--tinta-600); font-size:11px; margin-bottom:16px;}
+.receipt-row{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--borda);}
+.receipt-row.total{ font-weight:800; font-size:14.5px; border-bottom:none; border-top:1.5px solid var(--tinta-900); margin-top:6px; padding-top:10px;}
+.receipt-sign{ margin-top:26px; border-top:1px solid var(--tinta-900); padding-top:6px; text-align:center; font-size:10.5px; color:var(--tinta-600);}
+
+/* ============ ROUTES ============ */
+.route-card{ background:#fff; border:1px solid var(--borda); border-radius:var(--radius); padding:18px; }
+.route-collector{ display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+.route-stop{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px dashed var(--borda);}
+.route-stop:last-child{ border-bottom:none;}
+.route-stop-num{ width:22px;height:22px;border-radius:50%; background:var(--creme-50); border:1px solid var(--borda); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:var(--tinta-600); flex-shrink:0;}
+
+/* ============ EMPTY STATE ============ */
+.empty-state{ text-align:center; padding:60px 20px; color:var(--tinta-600);}
+.empty-state svg{ width:52px;height:52px; color:var(--borda); margin-bottom:14px;}
+.empty-state h3{ font-size:15px; color:var(--tinta-900); margin-bottom:6px;}
+.empty-state p{ font-size:13px; max-width:320px; margin:0 auto 18px;}
+
+/* ============ TOAST ============ */
+.toast-wrap{ position:fixed; bottom:24px; right:24px; z-index:400; display:flex; flex-direction:column; gap:10px;}
+.toast{
+  background:var(--verde-900); color:#fff; padding:13px 18px; border-radius:12px;
+  font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px;
+  box-shadow:var(--shadow-lg); animation: toastIn .2s ease;
+  min-width:240px;
+}
+.toast svg{ width:17px;height:17px; color:var(--verde-500); flex-shrink:0;}
+@keyframes toastIn{ from{opacity:0; transform:translateX(20px)} to{opacity:1; transform:none} }
+
+/* ============ AUTH SCREEN ============ */
+.auth-shell{ min-height:100vh; display:grid; grid-template-columns: 1fr 440px; }
+.auth-visual{
+  background: linear-gradient(150deg, var(--verde-900), #051912 85%);
+  padding:60px; display:flex; flex-direction:column; justify-content:center;
+  position:relative; overflow:hidden;
+}
+.auth-blob{ position:absolute; border-radius:50%; filter:blur(60px); opacity:.35; }
+.auth-blob-1{ width:380px; height:380px; background:var(--verde-500); top:-100px; right:-100px; }
+.auth-blob-2{ width:300px; height:300px; background:var(--azul-500); bottom:-80px; left:-60px; }
+.auth-panel{ background:#fff; display:flex; align-items:center; justify-content:center; padding:40px 32px; }
+.auth-card{ width:100%; max-width:360px; }
+.auth-tabs{ display:flex; background:var(--creme-50); border-radius:12px; padding:4px; margin-bottom:20px; border:1px solid var(--borda); }
+.auth-tab{ flex:1; padding:10px; border-radius:9px; font-size:13.5px; font-weight:700; color:var(--tinta-600); transition:all .15s; }
+.auth-tab.active{ background:#fff; color:var(--verde-700); box-shadow:var(--shadow-sm); }
+.auth-divider{ display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--tinta-400); font-size:12px; }
+.auth-divider::before,.auth-divider::after{ content:''; flex:1; height:1px; background:var(--borda); }
+.btn-google{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:11px; border-radius:12px; border:1px solid var(--borda); background:#fff;
+  font-size:13.5px; font-weight:600; color:var(--tinta-900); transition:background .15s;
+}
+.btn-google:hover{ background:var(--creme-50); }
+.btn-google svg{ width:18px; height:18px; }
+@media (max-width: 900px){
+  .auth-shell{ grid-template-columns:1fr; }
+  .auth-visual{ display:none; }
+  .auth-panel{ padding:32px 22px; }
+}
+
+/* Bottom mobile nav */
+.mobile-nav{ display:none; }
+
+@media (max-width: 980px){
+  .app-shell{ grid-template-columns: 1fr; }
+  .sidebar{ display:none; }
+  .main{ padding:18px 16px 90px; }
+  .kpi-grid{ grid-template-columns: 1fr 1fr; }
+  .two-col{ grid-template-columns:1fr; }
+  .mobile-nav{
+    display:flex; position:fixed; bottom:0; left:0; right:0; height:66px;
+    background:#fff; border-top:1px solid var(--borda); z-index:150;
+    box-shadow:0 -6px 20px rgba(7,35,28,.08);
+    justify-content:space-around; align-items:center; padding-bottom:6px;
+  }
+  .mobile-nav-item{ display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--tinta-400); font-size:9.5px; font-weight:600;}
+  .mobile-nav-item svg{ width:20px;height:20px;}
+  .mobile-nav-item.active{ color:var(--verde-700);}
+  .mobile-fab{
+    position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+    width:52px;height:52px;border-radius:50%; background:var(--verde-700); color:#fff;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(14,155,118,.4);
+  }
+  .mobile-fab svg{ width:24px;height:24px;}
+  .field-row{ grid-template-columns:1fr; }
+}
+@media print{
+  .no-print{ display:none !important; }
+  .app-shell{ display:block; }
+  body{ background:#fff; }
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast-wrap no-print" id="toastWrap"></div>
+
+<script>
+/* ==================================================================================
+   CREDCERTO — Sistema de Gestão de Empréstimos
+   Protótipo funcional front-end (dados em memória). Estrutura pensada para plugar
+   um backend real (ex.: Firebase Auth + Firestore + Storage, como no B2You Financial)
+   substituindo as funções db.* por chamadas assíncronas equivalentes.
+================================================================================== */
+
+/* ---------------- ICONS (inline SVG, stroke-based) ---------------- */
+const ICONS = {
+  dashboard:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>`,
+  clients:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  loans:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>`,
+  charge:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+  routes:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M12 19H8.5a2.5 2.5 0 0 1 0-5h7a2.5 2.5 0 0 0 0-5H6"/></svg>`,
+  receipts:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>`,
+  reports:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  search:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>`,
+  bell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  x:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  trend:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>`,
+  wallet:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>`,
+  pdf:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`,
+  whatsapp:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.2-.1.2-.3.3-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.1s1 2.5 1.1 2.6c.1.2 2 3 4.7 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.6-.7 1.9-1.3.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>`,
+  route:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-5.5-2.5A1 1 0 0 1 3 16.6V4.9a1 1 0 0 1 1.4-.9L9 6m0 14 6-3m-6 3V6m6 11 5.5 2.5a1 1 0 0 0 1.5-.9V7.4a1 1 0 0 0-.6-.9L15 4m0 13V4m0 0-6 2"/></svg>`,
+  pix:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>`,
+  cash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>`,
+  card:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`,
+  shield:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
+  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  logo_upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>`,
+  users:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>`,
+  key:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`,
+  arrowLeft:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>`,
+};
+const GOOGLE_G_ICON = `<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.1 35.7 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.7l-6.5 5C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C39.9 36.9 44 31.4 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>`;
+
+/* ---------------- HELPERS ---------------- */
+const fmtMoney = v => 'R$ ' + (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = d => { const dt = new Date(d); return dt.toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'}); };
+const fmtDateShort = d => { const dt = new Date(d); return dt.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}); };
+const uid = (p='id') => p+'_'+Math.random().toString(36).slice(2,10);
+const addDays = (date, n) => { const d = new Date(date); d.setDate(d.getDate()+n); return d.toISOString(); };
+const todayISO = () => new Date().toISOString();
+function initials(name){ return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+const AVATAR_COLORS = ['#0E9B76','#3E7CFF','#8B6BFF','#FF8C42','#E5484D','#12B187'];
+function avatarColor(seed){ let h=0; for(const c of String(seed)) h=c.charCodeAt(0)+((h<<5)-h); return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]; }
+function toast(msg, icon=ICONS.check){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.innerHTML = icon + '<span>'+msg+'</span>';
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(20px)'; el.style.transition='all .25s'; setTimeout(()=>el.remove(),250); }, 2600);
+}
+function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+
+/* ---------------- SEED DATA ---------------- */
+const db = {
+  config:{
+    nomeEmpresa:'CredCerto',
+    logoDataUrl:null,
+    moeda:'BRL',
+    corDestaque:'#0E9B76',
+    mensagemCobranca:'Olá {nome}! Lembrete: sua parcela de {valor} vence em {data}. Qualquer dúvida estou à disposição 🙂',
+  },
+  cobradores:[
+    {id:'col_1', nome:'Marcos Andrade', zona:'Zona Norte', cor:'#3E7CFF', ativo:true, arrecadadoHoje:1850},
+    {id:'col_2', nome:'Renata Souza', zona:'Centro', cor:'#8B6BFF', ativo:true, arrecadadoHoje:2400},
+    {id:'col_3', nome:'Pedro Lima', zona:'Zona Sul', cor:'#FF8C42', ativo:false, arrecadadoHoje:0},
+  ],
+  feriados:['2026-09-07','2026-12-25','2026-01-01'],
+  carteiras:[
+    {id:'cart_1', nome:'Carteira Principal', criadaEm: todayISO()},
+  ],
+  usuarios:[
+    {id:'usr_1', nome:'Will Silva', email:'will@credcerto.com.br', senha:'demo123', viaGoogle:false, perfil:'Administrador', cobradorId:null, acessoTodasCarteiras:true, carteiraIds:[], ativo:true, aprovado:true, criadoEm: todayISO(), ultimoAcesso: todayISO()},
+    {id:'usr_2', nome:'Renata Souza', email:'renata@credcerto.com.br', senha:'demo123', viaGoogle:false, perfil:'Cobrador', cobradorId:'col_2', acessoTodasCarteiras:false, carteiraIds:['cart_1'], ativo:true, aprovado:true, criadoEm: todayISO(), ultimoAcesso: addDays(todayISO(),-1)},
+    {id:'usr_3', nome:'Carla Mendes', email:'carla@credcerto.com.br', senha:'demo123', viaGoogle:false, perfil:'Financeiro', cobradorId:null, acessoTodasCarteiras:true, carteiraIds:[], ativo:true, aprovado:true, criadoEm: todayISO(), ultimoAcesso: addDays(todayISO(),-3)},
+  ],
+  clientes:[],
+  emprestimos:[],
+  pagamentos:[],
+};
+
+function seedData(){
+  const clientesSeed = [
+    {nome:'João Pereira', doc:'123.456.789-00', tel:'11 91234-5678', cobradorId:'col_1', zona:'Zona Norte'},
+    {nome:'Valentina Rossi', doc:'234.567.890-11', tel:'11 92345-6789', cobradorId:'col_2', zona:'Centro'},
+    {nome:'Raul Mendes', doc:'345.678.901-22', tel:'11 93456-7890', cobradorId:'col_1', zona:'Zona Norte'},
+    {nome:'Diego Bellido', doc:'456.789.012-33', tel:'11 94567-8901', cobradorId:'col_2', zona:'Centro'},
+    {nome:'Alejandro Badillo', doc:'567.890.123-44', tel:'11 95678-9012', cobradorId:'col_3', zona:'Zona Sul'},
+    {nome:'Fabrizio Yucra', doc:'678.901.234-55', tel:'11 96789-0123', cobradorId:'col_1', zona:'Zona Norte'},
+  ];
+  clientesSeed.forEach(c=>{
+    const cliente = {id:uid('cli'), ...c, carteiraId: db.carteiras[0].id, criadoEm:todayISO(), status:'ativo'};
+    db.clientes.push(cliente);
+  });
+
+  // Empréstimo exemplo do briefing: João, R$1.000.000, 60 dias, diário, fixo
+  criarEmprestimo({
+    clienteId: db.clientes[0].id,
+    capital: 1000000,
+    taxaMensal: 20,
+    prazoDias: 60,
+    frequencia: 'diario',
+    modo: 'fixo',
+    dataInicio: todayISO(),
+  }, {silent:true});
+
+  criarEmprestimo({
+    clienteId: db.clientes[1].id,
+    capital: 8000,
+    taxaMensal: 15,
+    prazoDias: 90,
+    frequencia: 'semanal',
+    modo: 'recalculado',
+    dataInicio: addDays(todayISO(),-20),
+  }, {silent:true});
+
+  criarEmprestimo({
+    clienteId: db.clientes[2].id,
+    capital: 15000,
+    taxaMensal: 12,
+    prazoDias: 180,
+    frequencia: 'mensal',
+    modo: 'capitalizacao',
+    dataInicio: addDays(todayISO(),-40),
+  }, {silent:true});
+
+  criarEmprestimo({
+    clienteId: db.clientes[3].id,
+    capital: 5000,
+    taxaMensal: 18,
+    prazoDias: 30,
+    frequencia: 'diario',
+    modo: 'fixo',
+    dataInicio: addDays(todayISO(),-35),
+  }, {silent:true});
+
+  criarEmprestimo({
+    clienteId: db.clientes[4].id,
+    capital: 3000,
+    taxaMensal: 20,
+    prazoDias: 45,
+    frequencia: 'semanal',
+    modo: 'recalculado',
+    dataInicio: addDays(todayISO(),-50),
+  }, {silent:true});
+
+  // marcar algumas parcelas antigas como pagas / vencidas p/ dashboard ficar realista
+  db.emprestimos.forEach(emp=>{
+    emp.parcelas.forEach((p,idx)=>{
+      const venc = new Date(p.dataVencimento);
+      if(venc < new Date() && idx < emp.parcelas.length){
+        if(Math.random() > 0.25){
+          registrarPagamento(emp.id, p.id, p.valor, {silent:true, meio:'dinheiro'});
+        }
+      }
+    });
+  });
+}
+
+/* ---------------- MOTOR DE CÁLCULO DE JUROS ---------------- */
+const FREQ_DIAS = { diario:1, semanal:7, quinzenal:15, mensal:30 };
+const FREQ_LABEL = { diario:'Diária', semanal:'Semanal', quinzenal:'Quinzenal', mensal:'Mensal' };
+const MODO_LABEL = { fixo:'Juros Fixo', recalculado:'Recalculado (saldo devedor)', capitalizacao:'Capitalização Bancária' };
+
+function gerarCronograma({capital, taxaMensal, prazoDias, frequencia, modo, dataInicio}){
+  const freqDias = FREQ_DIAS[frequencia];
+  const n = Math.max(1, Math.round(prazoDias/freqDias));
+  const i = (taxaMensal/100) * (freqDias/30); // taxa periódica
+  const parcelas = [];
+  let saldo = capital;
+
+  if(modo==='fixo'){
+    const jurosTotal = capital * i * n;
+    const parcelaValor = (capital + jurosTotal)/n;
+    for(let k=1;k<=n;k++){
+      parcelas.push({
+        id:uid('parc'), numero:k, dataVencimento: addDays(dataInicio, freqDias*k),
+        valor: round2(parcelaValor), juros: round2(parcelaValor - capital/n), amortizacao: round2(capital/n),
+        status:'pendente', pago:0, dataPagamento:null, meio:null,
+      });
+    }
+  } else if(modo==='recalculado'){
+    const amort = capital/n;
+    for(let k=1;k<=n;k++){
+      const juros = saldo*i;
+      const valor = amort + juros;
+      parcelas.push({
+        id:uid('parc'), numero:k, dataVencimento: addDays(dataInicio, freqDias*k),
+        valor: round2(valor), juros: round2(juros), amortizacao: round2(amort),
+        status:'pendente', pago:0, dataPagamento:null, meio:null,
+      });
+      saldo -= amort;
+    }
+  } else { // capitalizacao (Price)
+    const pmt = i===0 ? capital/n : capital*(i*Math.pow(1+i,n))/(Math.pow(1+i,n)-1);
+    for(let k=1;k<=n;k++){
+      const juros = saldo*i;
+      const amort = pmt-juros;
+      parcelas.push({
+        id:uid('parc'), numero:k, dataVencimento: addDays(dataInicio, freqDias*k),
+        valor: round2(pmt), juros: round2(juros), amortizacao: round2(amort),
+        status:'pendente', pago:0, dataPagamento:null, meio:null,
+      });
+      saldo -= amort;
+    }
+  }
+  return parcelas;
+}
+function round2(v){ return Math.round(v*100)/100; }
+
+function criarEmprestimo(data, opts={}){
+  const parcelas = gerarCronograma(data);
+  const emp = {
+    id: uid('emp'),
+    clienteId: data.clienteId,
+    capital: data.capital,
+    taxaMensal: data.taxaMensal,
+    prazoDias: data.prazoDias,
+    frequencia: data.frequencia,
+    modo: data.modo,
+    dataInicio: data.dataInicio,
+    jurosAtrasoMensal: data.jurosAtrasoMensal!==undefined ? data.jurosAtrasoMensal : 30,
+    status:'ativo',
+    parcelas,
+  };
+  db.emprestimos.push(emp);
+  if(!opts.silent) toast('Empréstimo criado com sucesso', ICONS.check);
+  return emp;
+}
+
+/* Cronograma "cadastro rápido de cliente": parcela = (capital/qtd) + (capital * juros%),
+   conforme fórmula solicitada — juros calculado sobre o valor contratado, não sobre saldo. */
+function gerarCronogramaCadastro({capital, jurosPct, qtdParcelas, frequencia, dataInicio}){
+  const freqDias = FREQ_DIAS[frequencia];
+  const n = Math.max(1, qtdParcelas);
+  const amortizacao = capital/n;
+  const jurosPorParcela = round2(capital * (jurosPct/100));
+  const valorParcela = round2(amortizacao + jurosPorParcela);
+  const parcelas = [];
+  for(let k=1;k<=n;k++){
+    parcelas.push({
+      id:uid('parc'), numero:k, dataVencimento: addDays(dataInicio, freqDias*k),
+      valor: valorParcela, juros: jurosPorParcela, amortizacao: round2(amortizacao),
+      status:'pendente', pago:0, dataPagamento:null, meio:null,
+    });
+  }
+  return parcelas;
+}
+function criarEmprestimoDoCadastro(data, opts={}){
+  const parcelas = gerarCronogramaCadastro(data);
+  const emp = {
+    id: uid('emp'),
+    clienteId: data.clienteId,
+    capital: data.capital,
+    taxaMensal: data.jurosPct,
+    prazoDias: FREQ_DIAS[data.frequencia] * data.qtdParcelas,
+    frequencia: data.frequencia,
+    modo: 'fixo',
+    dataInicio: data.dataInicio,
+    jurosAtrasoMensal: data.jurosAtrasoMensal!==undefined ? data.jurosAtrasoMensal : 30,
+    status:'ativo',
+    parcelas,
+  };
+  db.emprestimos.push(emp);
+  if(!opts.silent) toast('Empréstimo criado com sucesso', ICONS.check);
+  return emp;
+}
+
+function saldoDevedor(emp){
+  return emp.parcelas.filter(p=>p.status!=='pago').reduce((s,p)=>s+(p.valor-p.pago),0);
+}
+function capitalPendente(emp){
+  return emp.parcelas.filter(p=>p.status!=='pago').reduce((s,p)=>s+p.amortizacao,0);
+}
+function jurosAcumulado(emp){
+  return emp.parcelas.filter(p=>p.status!=='pago').reduce((s,p)=>s+p.juros,0);
+}
+function proximaParcela(emp){
+  return emp.parcelas.find(p=>p.status!=='pago');
+}
+function progressoEmprestimo(emp){
+  const pago = emp.parcelas.reduce((s,p)=>s+p.pago,0);
+  const total = emp.parcelas.reduce((s,p)=>s+p.valor,0);
+  return total? (pago/total*100) : 0;
+}
+function parcelasAtrasadas(emp){
+  const hoje = new Date();
+  return emp.parcelas.filter(p=> p.status!=='pago' && new Date(p.dataVencimento) < hoje);
+}
+
+function registrarPagamento(emprestimoId, parcelaId, valorPago, opts={}){
+  const emp = db.emprestimos.find(e=>e.id===emprestimoId);
+  const parcela = emp.parcelas.find(p=>p.id===parcelaId);
+  if(!parcela) return;
+  parcela.pago += valorPago;
+  parcela.dataPagamento = todayISO();
+  parcela.meio = opts.meio || 'dinheiro';
+  if(parcela.pago >= parcela.valor - 0.009){ parcela.status='pago'; }
+  else { parcela.status='parcial'; }
+
+  const pagamento = {
+    id: uid('pag'), emprestimoId, parcelaId, clienteId: emp.clienteId,
+    valor: valorPago, data: todayISO(), meio: parcela.meio,
+  };
+  db.pagamentos.push(pagamento);
+
+  if(emp.parcelas.every(p=>p.status==='pago')) emp.status='quitado';
+  if(!opts.silent) toast('Pagamento de '+fmtMoney(valorPago)+' registrado', ICONS.check);
+  return pagamento;
+}
+
+function aplicarPagamentoExtra(emprestimoId, valorExtra){
+  const emp = db.emprestimos.find(e=>e.id===emprestimoId);
+  if(!emp) return;
+  const pendentes = emp.parcelas.filter(p=>p.status!=='pago');
+  if(!pendentes.length) return;
+  const novoSaldo = Math.max(0, saldoDevedorCapital(emp) - valorExtra);
+
+  db.pagamentos.push({id:uid('pag'), emprestimoId, parcelaId:null, clienteId:emp.clienteId, valor:valorExtra, data:todayISO(), meio:'abatimento_extra'});
+
+  // recalcula parcelas futuras a partir do novo capital pendente
+  const restante = pendentes.length;
+  const freqDias = FREQ_DIAS[emp.frequencia];
+  const i = (emp.taxaMensal/100)*(freqDias/30);
+  let saldo = novoSaldo;
+
+  if(emp.modo==='fixo'){
+    const jurosTotal = saldo*i*restante;
+    const parcelaValor = restante? (saldo+jurosTotal)/restante : 0;
+    pendentes.forEach(p=>{
+      p.valor = round2(parcelaValor); p.amortizacao = round2(saldo/restante); p.juros = round2(parcelaValor - saldo/restante);
+      p.status='pendente'; p.pago=0;
+    });
+  } else if(emp.modo==='recalculado'){
+    const amort = restante? saldo/restante : 0;
+    pendentes.forEach(p=>{
+      const juros = saldo*i; const valor = amort+juros;
+      p.valor=round2(valor); p.juros=round2(juros); p.amortizacao=round2(amort);
+      p.status='pendente'; p.pago=0;
+      saldo -= amort;
+    });
+  } else {
+    const n = restante;
+    const pmt = (n===0||i===0) ? saldo/(n||1) : saldo*(i*Math.pow(1+i,n))/(Math.pow(1+i,n)-1);
+    pendentes.forEach(p=>{
+      const juros=saldo*i, amort=pmt-juros;
+      p.valor=round2(pmt); p.juros=round2(juros); p.amortizacao=round2(amort);
+      p.status='pendente'; p.pago=0;
+      saldo -= amort;
+    });
+  }
+  toast('Capital abatido em '+fmtMoney(valorExtra)+' — parcelas recalculadas', ICONS.check);
+}
+function saldoDevedorCapital(emp){
+  return emp.parcelas.filter(p=>p.status!=='pago').reduce((s,p)=>s+p.amortizacao,0);
+}
+
+/* ---------------- STATE ---------------- */
+const state = {
+  page:'dashboard',
+  clientesFiltro:'todos',
+  clientesBusca:'',
+  carteiraFiltro:'todas',
+  cobrancaFlow:null,
+  modal:null,
+  formGarantiaTipo:'fiador',
+  formOutrosContratos:'nao',
+  formAnexo:null,
+  formDraft:{},
+  editingClienteId:null,
+  editingEmprestimoId:null,
+  editingUsuarioId:null,
+  usrFormDraft:{},
+  usrAcessoTodas:true,
+  usrCarteirasSelecionadas:[],
+  currentUserId:'usr_1',
+  session:null,
+  authMode:'login',
+  authDraft:{},
+  authError:'',
+  authPendingNome:'',
+};
+const AUTH_FORM_IDS = ['authEmail','authSenha','authNome','authEmailSignup','authSenhaSignup','authSenhaConfirm','authGoogleEmail'];
+function collectAuthDraft(){
+  AUTH_FORM_IDS.forEach(id=>{ const elx=document.getElementById(id); if(elx) state.authDraft[id]=elx.value; });
+}
+const CLIENTE_FORM_IDS = ['mNome','mCPF','mRG','mTel','mZona','mEndereco','mCobrador','mCarteira','mFiadorNome','mFiadorCPF','mFiadorCel','mBemTipo','mBemMarca','mBemModelo','mBemAno','mBemCor','mOutroNome','mOutroCel','mCapitalCli','mJurosCli','mQtdParcelas','mDataPagamento','mJurosAtraso'];
+function collectClienteDraft(){
+  CLIENTE_FORM_IDS.forEach(id=>{ const elx=document.getElementById(id); if(elx) state.formDraft[id]=elx.value; });
+  const segPag = document.getElementById('segFormaPagCli');
+  if(segPag){ const active = segPag.querySelector('.active'); if(active) state.formDraft.formaPagCli = active.dataset.val; }
+}
+const USR_FORM_IDS = ['mUsrNome','mUsrEmail','mUsrPerfil','mUsrCobrador','mUsrSenha'];
+function collectUsrDraft(){
+  USR_FORM_IDS.forEach(id=>{ const elx=document.getElementById(id); if(elx) state.usrFormDraft[id]=elx.value; });
+}
+
+function navigate(page){
+  if(page==='usuarios' && !isAdmin()){ toast('Apenas administradores podem gerenciar usuários', ICONS.alert); page='dashboard'; }
+  state.page = page; state.modal=null; render(); window.scrollTo(0,0);
+}
+function openModal(name, payload){ state.modal = {name, payload}; render(); }
+function closeModal(){ state.modal=null; render(); }
+
+/* ---------------- NAV CONFIG ---------------- */
+const NAV = [
+  {group:'Visão Geral', items:[
+    {id:'dashboard', label:'Dashboard', icon:ICONS.dashboard},
+  ]},
+  {group:'Operação', items:[
+    {id:'cobranca', label:'Cobrança Rápida', icon:ICONS.charge},
+    {id:'clientes', label:'Clientes', icon:ICONS.clients},
+    {id:'emprestimos', label:'Empréstimos', icon:ICONS.loans},
+    {id:'rotas', label:'Rotas e Cobradores', icon:ICONS.routes},
+  ]},
+  {group:'Gestão', items:[
+    {id:'recibos', label:'Recibos', icon:ICONS.receipts},
+    {id:'relatorios', label:'Relatórios', icon:ICONS.reports},
+    {id:'usuarios', label:'Usuários', icon:ICONS.users},
+    {id:'config', label:'Configurações', icon:ICONS.settings},
+  ]},
+];
+const PAGE_META = {
+  dashboard:{title:'Dashboard', sub:'Visão geral da sua carteira em tempo real'},
+  cobranca:{title:'Cobrança Rápida', sub:'Registre pagamentos em 3 toques'},
+  clientes:{title:'Clientes', sub:'Cadastro e histórico de clientes'},
+  emprestimos:{title:'Empréstimos', sub:'Gestão de contratos e parcelas'},
+  usuarios:{title:'Usuários', sub:'Controle de acesso e permissões do sistema'},
+  rotas:{title:'Rotas e Cobradores', sub:'Zonas, atribuições e arrecadação por colaborador'},
+  recibos:{title:'Recibos', sub:'Comprovantes em PDF, prontos para impressão ou envio'},
+  relatorios:{title:'Relatórios', sub:'Arrecadação, inadimplência e projeção de caixa'},
+  config:{title:'Configurações', sub:'Marca, moeda e modelos de cobrança'},
+};
+
+/* ---------------- RENDER SHELL ---------------- */
+function render(){
+  const app = document.getElementById('app');
+  if(!state.session){
+    app.innerHTML = renderAuthScreen();
+    afterRender();
+    return;
+  }
+  app.innerHTML = `
+    <div class="app-shell">
+      ${renderSidebar()}
+      <div class="main">
+        ${renderTopbar()}
+        <div id="pageContent">${renderPage()}</div>
+      </div>
+    </div>
+    ${renderMobileNav()}
+    ${state.modal ? renderModal() : ''}
+  `;
+  afterRender();
+}
+
+/* ================= AUTENTICAÇÃO ================= */
+function renderAuthScreen(){
+  const ad = state.authDraft || {};
+  const err = state.authError ? `<div class="field-hint" style="color:var(--vermelho-500); background:var(--vermelho-100); padding:9px 12px; border-radius:10px; margin-bottom:14px;">${esc(state.authError)}</div>` : '';
+  return `
+  <div class="auth-shell">
+    <div class="auth-visual no-print">
+      <div class="auth-blob auth-blob-1"></div>
+      <div class="auth-blob auth-blob-2"></div>
+      <div style="position:relative; z-index:1;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:40px;">
+          <div class="brand-mark" style="width:44px;height:44px;font-size:18px;">CC</div>
+          <div class="brand-name" style="font-size:19px;">CredCerto</div>
+        </div>
+        <h1 style="font-size:32px; color:#fff; max-width:420px; line-height:1.25; margin-bottom:16px;">Controle total da sua carteira de empréstimos, num só lugar.</h1>
+        <p style="color:rgba(255,255,255,.65); max-width:400px; font-size:14.5px; line-height:1.6;">Cadastro de clientes, cobrança em 3 toques, rotas, recibos e relatórios — tudo sincronizado em tempo real entre a sua equipe.</p>
+      </div>
+    </div>
+    <div class="auth-panel">
+      <div class="auth-card">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
+          <div class="brand-mark">CC</div>
+          <div class="brand-name" style="color:var(--tinta-900);">CredCerto</div>
+        </div>
+
+        ${state.authMode==='pending' ? `
+          <div style="text-align:center; padding:10px 0 6px;">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--laranja-100);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#b95c00;">${ICONS.alert}</div>
+            <div style="font-weight:700; font-size:17px; margin-bottom:8px;">Conta criada!</div>
+            <p style="font-size:13.5px; color:var(--tinta-600); line-height:1.6; margin-bottom:24px;">${esc(state.authPendingNome)}, sua conta está com <b>acesso pendente</b>. Um administrador precisa liberar suas carteiras antes que você possa entrar no sistema.</p>
+            <button class="btn btn-primary" style="width:100%; justify-content:center;" data-action="setAuthMode" data-val="login">Entendi, voltar ao login</button>
+          </div>
+        ` : state.authMode==='google' ? `
+          <button class="btn-icon" data-action="setAuthMode" data-val="login" style="margin-bottom:18px;">${ICONS.arrowLeft}</button>
+          <div style="text-align:center; margin-bottom:20px;">
+            <div style="width:44px;height:44px;margin:0 auto 12px;font-size:44px;line-height:1;">${GOOGLE_G_ICON}</div>
+            <div style="font-weight:700; font-size:16px;">Entrar com o Google</div>
+            <div class="field-hint" style="margin-top:4px;">Simulação de login — em produção isso abriria o consentimento OAuth oficial do Google.</div>
+          </div>
+          ${err}
+          <div class="field"><label>Conta do Gmail</label><input id="authGoogleEmail" type="email" placeholder="voce@gmail.com" value="${esc(ad.authGoogleEmail||'')}"></div>
+          <button class="btn btn-primary" style="width:100%; justify-content:center;" data-action="confirmarGoogleAuth">Continuar</button>
+        ` : `
+          <div class="auth-tabs">
+            <button class="auth-tab ${state.authMode==='login'?'active':''}" data-action="setAuthMode" data-val="login">Entrar</button>
+            <button class="auth-tab ${state.authMode==='signup'?'active':''}" data-action="setAuthMode" data-val="signup">Criar conta</button>
+          </div>
+          ${err}
+          ${state.authMode==='login' ? `
+            <div class="field"><label>E-mail</label><input id="authEmail" type="email" placeholder="voce@email.com" value="${esc(ad.authEmail||'')}"></div>
+            <div class="field"><label>Senha</label><input id="authSenha" type="password" placeholder="••••••••" value="${esc(ad.authSenha||'')}"></div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:4px;" data-action="fazerLogin">Entrar</button>
+          ` : `
+            <div class="field"><label>Nome completo</label><input id="authNome" placeholder="Seu nome" value="${esc(ad.authNome||'')}"></div>
+            <div class="field"><label>E-mail</label><input id="authEmailSignup" type="email" placeholder="voce@email.com" value="${esc(ad.authEmailSignup||'')}"></div>
+            <div class="field-row">
+              <div class="field"><label>Senha</label><input id="authSenhaSignup" type="password" placeholder="Mínimo 6 caracteres" value="${esc(ad.authSenhaSignup||'')}"></div>
+              <div class="field"><label>Confirmar senha</label><input id="authSenhaConfirm" type="password" placeholder="Repita a senha" value="${esc(ad.authSenhaConfirm||'')}"></div>
+            </div>
+            <div class="field-hint" style="margin:-6px 0 14px;">Sua conta é criada com acesso básico; um administrador libera as carteiras que você poderá ver.</div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center;" data-action="criarConta">Criar conta</button>
+          `}
+          <div class="auth-divider"><span>ou</span></div>
+          <button class="btn-google" data-action="setAuthMode" data-val="google">${GOOGLE_G_ICON} Continuar com o Google</button>
+          <p class="field-hint" style="text-align:center; margin-top:18px;">Conta de exemplo: will@credcerto.com.br · senha demo123</p>
+        `}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderSidebar(){
+  const cu = currentUser();
+  return `
+  <div class="sidebar no-print">
+    <div class="brand">
+      <div class="brand-mark">${db.config.logoDataUrl ? `<img src="${db.config.logoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">` : 'CC'}</div>
+      <div>
+        <div class="brand-name">${esc(db.config.nomeEmpresa)}</div>
+        <div class="brand-sub">Gestão de Empréstimos</div>
+      </div>
+    </div>
+    ${NAV.map(g=>`
+      <div class="nav-group-label">${g.group}</div>
+      ${g.items.filter(it=> it.id!=='usuarios' || isAdmin()).map(it=>`
+        <a class="nav-item ${state.page===it.id?'active':''}" data-nav="${it.id}">
+          ${it.icon}<span>${it.label}</span>
+          ${it.id==='cobranca' && countAtrasados()>0 ? `<span class="nav-badge">${countAtrasados()}</span>` : ''}
+        </a>
+      `).join('')}
+    `).join('')}
+    <div class="sidebar-footer" data-action="trocarUsuario" style="cursor:pointer;">
+      <div class="avatar-sm" style="background:${avatarColor(cu.nome)}">${initials(cu.nome)}</div>
+      <div>
+        <div class="sidebar-footer-name">${esc(cu.nome)}</div>
+        <div class="sidebar-footer-role">${esc(cu.perfil)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMobileNav(){
+  const items = [
+    {id:'dashboard', icon:ICONS.dashboard},
+    {id:'clientes', icon:ICONS.clients},
+    {id:'FAB', icon:ICONS.plus},
+    {id:'rotas', icon:ICONS.routes},
+    {id:'relatorios', icon:ICONS.reports},
+  ];
+  return `<div class="mobile-nav no-print">
+    ${items.map(it=> it.id==='FAB' ? `
+      <div style="position:relative;width:52px;">
+        <button class="mobile-fab" data-nav="cobranca">${ICONS.charge}</button>
+      </div>` : `
+      <a class="mobile-nav-item ${state.page===it.id?'active':''}" data-nav="${it.id}">${it.icon}<span>${PAGE_META[it.id].title.split(' ')[0]}</span></a>
+    `).join('')}
+  </div>`;
+}
+
+function currentUser(){
+  return db.usuarios.find(u=>u.id===state.currentUserId) || db.usuarios[0];
+}
+function isAdmin(){
+  const u = currentUser();
+  return !!u && u.perfil==='Administrador';
+}
+function carteirasPermitidas(){
+  const u = currentUser();
+  if(!u || u.acessoTodasCarteiras) return db.carteiras;
+  return db.carteiras.filter(c=> (u.carteiraIds||[]).includes(c.id));
+}
+function clienteNaCarteiraFiltro(cli){
+  const idsPermitidos = new Set(carteirasPermitidas().map(c=>c.id));
+  if(!idsPermitidos.has(cli.carteiraId)) return false;
+  return state.carteiraFiltro==='todas' || cli.carteiraId===state.carteiraFiltro;
+}
+function clientesFiltrados(){
+  return db.clientes.filter(clienteNaCarteiraFiltro);
+}
+function emprestimosFiltrados(){
+  return db.emprestimos.filter(e=>{
+    const cli = db.clientes.find(c=>c.id===e.clienteId);
+    return cli && clienteNaCarteiraFiltro(cli);
+  });
+}
+function nomeCarteira(id){
+  const c = db.carteiras.find(x=>x.id===id);
+  return c ? c.nome : 'Sem carteira';
+}
+function countAtrasados(){
+  let n=0;
+  emprestimosFiltrados().forEach(e=> n += parcelasAtrasadas(e).length);
+  return n;
+}
+
+function renderTopbar(){
+  const meta = PAGE_META[state.page];
+  const paginasComFiltro = ['dashboard','clientes','emprestimos','cobranca','relatorios'];
+  return `
+  <div class="topbar no-print">
+    <div>
+      <div class="page-title">${meta.title}</div>
+      <div class="page-sub">${meta.sub}</div>
+    </div>
+    <div class="topbar-actions">
+      ${paginasComFiltro.includes(state.page) ? `
+      <select id="carteiraFiltroSelect" class="btn-ghost" style="border-radius:12px; border:1px solid var(--borda); padding:9px 12px; font-size:13px; font-weight:600; background:#fff;">
+        <option value="todas" ${state.carteiraFiltro==='todas'?'selected':''}>${ICONS.wallet ? '' : ''}Todas as Carteiras</option>
+        ${carteirasPermitidas().map(c=>`<option value="${c.id}" ${state.carteiraFiltro===c.id?'selected':''}>${esc(c.nome)}</option>`).join('')}
+      </select>` : ''}
+      <div class="search-box">${ICONS.search}<input placeholder="Buscar cliente, contrato..." id="globalSearch" value=""></div>
+      <button class="btn-icon">${ICONS.bell}</button>
+      ${state.page==='clientes' ? `<button class="btn btn-primary" data-action="novoCliente">${ICONS.plus}Novo Cliente</button>` : ''}
+      ${state.page==='emprestimos' ? `<button class="btn btn-primary" data-action="novoEmprestimo">${ICONS.plus}Novo Empréstimo</button>` : ''}
+      ${state.page==='rotas' ? `<button class="btn btn-primary" data-action="novoCobrador">${ICONS.plus}Novo Cobrador</button>` : ''}
+      ${state.page==='usuarios' ? `<button class="btn btn-primary" data-action="novoUsuario">${ICONS.plus}Novo Usuário</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderPage(){
+  switch(state.page){
+    case 'dashboard': return renderDashboard();
+    case 'cobranca': return renderCobranca();
+    case 'clientes': return renderClientes();
+    case 'emprestimos': return renderEmprestimos();
+    case 'rotas': return renderRotas();
+    case 'usuarios': return renderUsuarios();
+    case 'recibos': return renderRecibos();
+    case 'relatorios': return renderRelatorios();
+    case 'config': return renderConfig();
+    default: return '';
+  }
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard(){
+  const empsF = emprestimosFiltrados();
+  const clientesF = clientesFiltrados();
+  const idsClientesF = new Set(clientesF.map(c=>c.id));
+  const pagamentosF = db.pagamentos.filter(p=> idsClientesF.has(p.clienteId));
+  const totalCarteira = empsF.reduce((s,e)=>s+e.capital,0);
+  const pendente = empsF.reduce((s,e)=>s+capitalPendente(e),0);
+  const jurosAc = empsF.reduce((s,e)=>s+jurosAcumulado(e),0);
+  const arrecadadoHoje = pagamentosF.filter(p=> new Date(p.data).toDateString()===new Date().toDateString()).reduce((s,p)=>s+p.valor,0);
+  const atrasados = countAtrasados();
+  const totalParcelas = empsF.reduce((s,e)=>s+e.parcelas.length,0);
+  const inadimplencia = totalParcelas? (atrasados/totalParcelas*100) : 0;
+  const cobrado = pagamentosF.reduce((s,p)=>s+p.valor,0);
+  const progressoGeral = (totalCarteira+jurosAc)? (cobrado/(totalCarteira+jurosAc)*100) : 0;
+
+  return `
+  <div class="grid kpi-grid">
+    <div class="card kpi-card">
+      <div class="kpi-icon" style="background:var(--verde-100);color:var(--verde-700);">${ICONS.wallet}</div>
+      <div class="kpi-label">Carteira Total</div>
+      <div class="kpi-value mono">${fmtMoney(totalCarteira)}</div>
+      <div class="kpi-delta delta-up">${ICONS.trend} ${empsF.length} contratos ativos</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-icon" style="background:var(--azul-100);color:var(--azul-500);">${ICONS.loans}</div>
+      <div class="kpi-label">Capital Pendente</div>
+      <div class="kpi-value mono">${fmtMoney(pendente)}</div>
+      <div class="kpi-delta" style="color:var(--tinta-600)">+ ${fmtMoney(jurosAc)} em juros a receber</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-icon" style="background:var(--laranja-100);color:#b95c00;">${ICONS.charge}</div>
+      <div class="kpi-label">Arrecadado Hoje</div>
+      <div class="kpi-value mono">${fmtMoney(arrecadadoHoje)}</div>
+      <div class="kpi-delta delta-up">${ICONS.trend} meta diária 65%</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-icon" style="background:var(--vermelho-100);color:var(--vermelho-500);">${ICONS.alert}</div>
+      <div class="kpi-label">Parcelas em Atraso</div>
+      <div class="kpi-value mono">${atrasados}</div>
+      <div class="kpi-delta ${inadimplencia>10?'delta-down':'delta-up'}">${inadimplencia.toFixed(1)}% de inadimplência</div>
+    </div>
+  </div>
+
+  <div class="grid two-col" style="margin-bottom:22px;">
+    <div class="card">
+      <div class="section-title">Arrecadação — últimos 14 dias
+        <span class="badge badge-ok"><span class="badge-dot"></span>Atualizado agora</span>
+      </div>
+      <canvas id="chartArrecadacao" height="130"></canvas>
+    </div>
+    <div class="card">
+      <div class="section-title">Saúde da Carteira</div>
+      <div class="ring-wrap">
+        <svg width="112" height="112" viewBox="0 0 112 112">
+          <circle cx="56" cy="56" r="48" fill="none" stroke="#EEF2EE" stroke-width="12"/>
+          <circle cx="56" cy="56" r="48" fill="none" stroke="url(#gradRing)" stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="${2*Math.PI*48}" stroke-dashoffset="${2*Math.PI*48*(1-progressoGeral/100)}"/>
+          <defs><linearGradient id="gradRing" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3DBE96"/><stop offset="100%" stop-color="#0E9B76"/>
+          </linearGradient></defs>
+        </svg>
+        <div class="ring-center"><div class="val">${progressoGeral.toFixed(0)}%</div><div class="lbl">Cobrado</div></div>
+      </div>
+      <div style="margin-top:18px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--tinta-600)">Contratos quitados</span><b>${empsF.filter(e=>e.status==='quitado').length}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--tinta-600)">Contratos ativos</span><b>${empsF.filter(e=>e.status==='ativo').length}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--tinta-600)">Cobradores em campo</span><b>${db.cobradores.filter(c=>c.ativo).length}</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Próximos vencimentos
+      <button class="btn btn-ghost btn-sm" data-nav="emprestimos">Ver todos</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cliente</th><th>Contrato</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${proximosVencimentos().map(row=>`
+            <tr>
+              <td class="cell-name"><div class="avatar-tiny" style="background:${avatarColor(row.cliente.nome)}">${initials(row.cliente.nome)}</div>${esc(row.cliente.nome)}</td>
+              <td class="mono">#${row.emp.id.slice(-5).toUpperCase()}</td>
+              <td>${fmtDate(row.parcela.dataVencimento)}</td>
+              <td class="mono">${fmtMoney(row.parcela.valor)}</td>
+              <td>${statusBadge(row.parcela)}</td>
+              <td><button class="btn btn-primary btn-sm" data-action="cobrarRapido" data-emp="${row.emp.id}" data-parc="${row.parcela.id}">Cobrar</button></td>
+            </tr>
+          `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tinta-600);padding:26px;">Nenhuma parcela pendente 🎉</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  `;
+}
+function proximosVencimentos(){
+  const rows=[];
+  emprestimosFiltrados().forEach(emp=>{
+    const p = proximaParcela(emp);
+    if(p){ rows.push({emp, parcela:p, cliente: db.clientes.find(c=>c.id===emp.clienteId)}); }
+  });
+  return rows.sort((a,b)=> new Date(a.parcela.dataVencimento)-new Date(b.parcela.dataVencimento)).slice(0,6);
+}
+function statusBadge(parcela){
+  const atrasada = parcela.status!=='pago' && new Date(parcela.dataVencimento) < new Date();
+  if(parcela.status==='pago') return `<span class="badge badge-ok"><span class="badge-dot"></span>Pago</span>`;
+  if(parcela.status==='parcial') return `<span class="badge badge-info"><span class="badge-dot"></span>Parcial</span>`;
+  if(atrasada) return `<span class="badge badge-bad"><span class="badge-dot"></span>Atrasado</span>`;
+  return `<span class="badge badge-warn"><span class="badge-dot"></span>Pendente</span>`;
+}
+
+/* ================= CLIENTES ================= */
+function renderClientes(){
+  let list = clientesFiltrados().filter(c=>{
+    if(state.clientesBusca && !c.nome.toLowerCase().includes(state.clientesBusca.toLowerCase())) return false;
+    return true;
+  });
+  return `
+  <div class="chip-row">
+    <div class="chip active">Todos (${list.length})</div>
+    <div class="chip">Em dia</div>
+    <div class="chip">Com atraso</div>
+    <div class="chip">Zona Norte</div>
+    <div class="chip">Centro</div>
+    <div class="chip">Zona Sul</div>
+  </div>
+  <div class="grid client-cards">
+    ${list.map(cli=>{
+      const emp = db.emprestimos.filter(e=>e.clienteId===cli.id);
+      const totalEmp = emp.reduce((s,e)=>s+e.capital,0);
+      const totalPago = emp.reduce((s,e)=>s+e.parcelas.reduce((a,p)=>a+p.pago,0),0);
+      const totalDevido = emp.reduce((s,e)=>s+saldoDevedor(e),0);
+      const prog = emp.length ? (emp.reduce((s,e)=>s+progressoEmprestimo(e),0)/emp.length) : 0;
+      const atrasado = emp.some(e=>parcelasAtrasadas(e).length>0);
+      const cobrador = db.cobradores.find(c=>c.id===cli.cobradorId);
+      return `
+      <div class="client-card" data-action="verCliente" data-id="${cli.id}">
+        <div class="client-card-top">
+          <div class="avatar-tiny" style="width:42px;height:42px;font-size:14px;background:${avatarColor(cli.nome)}">${initials(cli.nome)}</div>
+          <div style="flex:1;">
+            <div class="client-card-name">${esc(cli.nome)}</div>
+            <div class="client-card-id">${esc(cli.doc)}</div>
+          </div>
+          ${atrasado ? `<span class="badge badge-bad"><span class="badge-dot"></span>Atraso</span>` : `<span class="badge badge-ok"><span class="badge-dot"></span>Em dia</span>`}
+        </div>
+        <div style="font-size:12px;color:var(--tinta-600);margin-bottom:2px;">${emp.length} empréstimo(s) · ${cobrador? esc(cobrador.nome):'sem cobrador'}</div>
+        <div style="margin-bottom:8px;"><span class="badge badge-neutral">${ICONS.wallet} ${esc(nomeCarteira(cli.carteiraId))}</span></div>
+        <div class="client-card-bar"><div class="client-card-bar-fill" style="width:${prog.toFixed(0)}%"></div></div>
+        <div class="client-card-nums">
+          <span>Devido <b>${fmtMoney(totalDevido)}</b></span>
+          <span>Pago <b>${fmtMoney(totalPago)}</b></span>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid var(--borda);">
+          <button class="btn btn-ghost btn-sm" style="flex:1;" data-action="editarCliente" data-id="${cli.id}">${ICONS.edit} Editar</button>
+          <button class="btn btn-danger-ghost btn-sm" style="flex:1;" data-action="excluirCliente" data-id="${cli.id}">${ICONS.trash} Excluir</button>
+        </div>
+      </div>`;
+    }).join('') || `<div class="empty-state" style="grid-column:1/-1;">${ICONS.clients}<h3>Nenhum cliente encontrado</h3><p>Cadastre seu primeiro cliente para começar a gerir empréstimos.</p><button class="btn btn-primary" data-action="novoCliente" style="margin:0 auto;">${ICONS.plus}Novo Cliente</button></div>`}
+  </div>`;
+}
+
+/* ================= EMPRÉSTIMOS ================= */
+function renderEmprestimos(){
+  return `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cliente</th><th>Carteira</th><th>Capital</th><th>Modo de Juros</th><th>Frequência</th><th>Progresso</th><th>Saldo Devedor</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      ${emprestimosFiltrados().map(emp=>{
+        const cli = db.clientes.find(c=>c.id===emp.clienteId);
+        const prog = progressoEmprestimo(emp);
+        const atrasado = parcelasAtrasadas(emp).length>0;
+        return `
+        <tr>
+          <td class="cell-name"><div class="avatar-tiny" style="background:${avatarColor(cli.nome)}">${initials(cli.nome)}</div>${esc(cli.nome)}</td>
+          <td><span class="badge badge-neutral">${esc(nomeCarteira(cli.carteiraId))}</span></td>
+          <td class="mono">${fmtMoney(emp.capital)}</td>
+          <td><span class="badge badge-neutral">${MODO_LABEL[emp.modo]}</span></td>
+          <td>${FREQ_LABEL[emp.frequencia]}</td>
+          <td style="min-width:120px;">
+            <div class="client-card-bar" style="margin:0;"><div class="client-card-bar-fill" style="width:${prog.toFixed(0)}%"></div></div>
+            <div style="font-size:11px;color:var(--tinta-600);margin-top:4px;">${prog.toFixed(0)}%</div>
+          </td>
+          <td class="mono">${fmtMoney(saldoDevedor(emp))}</td>
+          <td>${emp.status==='quitado' ? `<span class="badge badge-ok"><span class="badge-dot"></span>Quitado</span>` : atrasado ? `<span class="badge badge-bad"><span class="badge-dot"></span>Atraso</span>` : `<span class="badge badge-info"><span class="badge-dot"></span>Ativo</span>`}</td>
+          <td style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm" data-action="verEmprestimo" data-id="${emp.id}">Ver parcelas</button>
+            <button class="btn-icon" title="Editar" data-action="editarEmprestimo" data-id="${emp.id}">${ICONS.edit}</button>
+            <button class="btn-icon" title="Excluir" data-action="excluirEmprestimo" data-id="${emp.id}">${ICONS.trash}</button>
+          </td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--tinta-600)">Nenhum empréstimo cadastrado</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ================= COBRANÇA RÁPIDA (3 toques) ================= */
+function renderCobranca(){
+  if(state.cobrancaFlow){ return renderTapFlow(); }
+  const pendentesHoje = [];
+  emprestimosFiltrados().forEach(emp=>{
+    const p = proximaParcela(emp);
+    if(p) pendentesHoje.push({emp, parcela:p, cliente: db.clientes.find(c=>c.id===emp.clienteId)});
+  });
+  pendentesHoje.sort((a,b)=> new Date(a.parcela.dataVencimento)-new Date(b.parcela.dataVencimento));
+  return `
+  <div class="card" style="margin-bottom:20px; background:linear-gradient(120deg,var(--verde-900),#0C3A2C); color:#fff; border:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div style="font-size:13px;color:rgba(255,255,255,.65);margin-bottom:4px;">Toque no cliente para iniciar a cobrança</div>
+        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;">${pendentesHoje.length} clientes com parcela pendente</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div style="text-align:center;"><div class="display" style="font-size:22px;font-weight:800;">${countAtrasados()}</div><div style="font-size:11px;color:rgba(255,255,255,.6);">Atrasados</div></div>
+        <div style="width:1px;background:rgba(255,255,255,.2);"></div>
+        <div style="text-align:center;"><div class="display" style="font-size:22px;font-weight:800;">${fmtMoney(db.pagamentos.filter(p=> new Date(p.data).toDateString()===new Date().toDateString()).reduce((s,p)=>s+p.valor,0)).replace('R$ ','')}</div><div style="font-size:11px;color:rgba(255,255,255,.6);">Cobrado hoje</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid client-cards">
+    ${pendentesHoje.map(row=>{
+      const atrasada = new Date(row.parcela.dataVencimento) < new Date();
+      return `
+      <div class="client-card" data-action="cobrarRapido" data-emp="${row.emp.id}" data-parc="${row.parcela.id}">
+        <div class="client-card-top">
+          <div class="avatar-tiny" style="width:42px;height:42px;font-size:14px;background:${avatarColor(row.cliente.nome)}">${initials(row.cliente.nome)}</div>
+          <div style="flex:1;">
+            <div class="client-card-name">${esc(row.cliente.nome)}</div>
+            <div class="client-card-id">Parcela ${row.parcela.numero} · vence ${fmtDateShort(row.parcela.dataVencimento)}</div>
+          </div>
+          ${atrasada ? `<span class="badge badge-bad"><span class="badge-dot"></span>Atraso</span>` : `<span class="badge badge-warn"><span class="badge-dot"></span>Hoje</span>`}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+          <div class="mono" style="font-size:19px;font-weight:700;">${fmtMoney(row.parcela.valor)}</div>
+          <div class="btn btn-primary btn-sm">${ICONS.charge} Cobrar</div>
+        </div>
+      </div>`;
+    }).join('') || `<div class="empty-state" style="grid-column:1/-1;">${ICONS.check}<h3>Tudo cobrado por aqui!</h3><p>Não há parcelas pendentes no momento.</p></div>`}
+  </div>`;
+}
+
+function renderTapFlow(){
+  const {step, emp, parcela, cliente} = state.cobrancaFlow;
+  let inner = '';
+  if(step===1){
+    inner = `
+      <div class="tap-avatar" style="background:${avatarColor(cliente.nome)}">${initials(cliente.nome)}</div>
+      <div style="font-weight:700;font-size:16px;">${esc(cliente.nome)}</div>
+      <div class="tap-sub">Parcela ${parcela.numero} · vence ${fmtDate(parcela.dataVencimento)}</div>
+      <div class="tap-amount mono">${fmtMoney(parcela.valor - parcela.pago)}</div>
+      <div class="tap-sub">Valor a cobrar (toque 1 de 3)</div>
+      <button class="tap-btn" data-action="tapNext">${ICONS.check} Confirmar valor</button>
+      <button class="tap-btn secondary" data-action="tapValorExtra">Registrar pagamento diferente</button>
+    `;
+  } else if(step===2){
+    inner = `
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Forma de pagamento</div>
+      <div class="tap-sub">Toque 2 de 3</div>
+      <div class="tap-methods">
+        ${['dinheiro','pix','cartao'].map(m=>`
+          <div class="tap-method ${state.cobrancaFlow.meio===m?'active':''}" data-action="setMeio" data-meio="${m}">
+            ${m==='dinheiro'?ICONS.cash:m==='pix'?ICONS.pix:ICONS.card}
+            <span>${m==='dinheiro'?'Dinheiro':m==='pix'?'Pix':'Cartão'}</span>
+          </div>`).join('')}
+      </div>
+      <button class="tap-btn" data-action="tapNext" ${!state.cobrancaFlow.meio?'style="opacity:.5;pointer-events:none;"':''}>${ICONS.check} Confirmar recebimento</button>
+      <button class="tap-btn secondary" data-action="tapBack">Voltar</button>
+    `;
+  } else {
+    inner = `
+      <div class="tap-success">${ICONS.check}</div>
+      <div style="font-weight:700;font-size:17px;">Pagamento registrado!</div>
+      <div class="tap-sub">${fmtMoney(state.cobrancaFlow.valorFinal)} recebido de ${esc(cliente.nome)}</div>
+      <button class="tap-btn" data-action="tapImprimir">${ICONS.receipts} Ver / imprimir recibo</button>
+      <button class="tap-btn secondary" data-action="tapWhats">${ICONS.whatsapp} Enviar por WhatsApp</button>
+      <button class="tap-btn secondary" data-action="tapFechar">Concluir</button>
+    `;
+  }
+  return `
+  <div style="max-width:420px;margin:10px auto;">
+    <div class="card tap-flow">
+      <div class="tap-dots">
+        <div class="tap-dot ${step>=1?'done':''} ${step===1?'current':''}"></div>
+        <div class="tap-dot ${step>=2?'done':''} ${step===2?'current':''}"></div>
+        <div class="tap-dot ${step>=3?'done':''} ${step===3?'current':''}"></div>
+      </div>
+      ${inner}
+    </div>
+    ${step<3 ? `<div style="text-align:center;margin-top:14px;"><button class="btn btn-ghost btn-sm" data-action="tapCancelar">Cancelar cobrança</button></div>` : ''}
+  </div>`;
+}
+
+/* ================= ROTAS E COBRADORES ================= */
+function renderRotas(){
+  return `
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); margin-bottom:22px;">
+    ${db.cobradores.map(col=>{
+      const clientesCol = db.clientes.filter(c=>c.cobradorId===col.id);
+      return `
+      <div class="route-card">
+        <div class="route-collector">
+          <div class="avatar-tiny" style="width:38px;height:38px;font-size:13px;background:${col.cor}">${initials(col.nome)}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${esc(col.nome)}</div>
+            <div style="font-size:11.5px;color:var(--tinta-600);">${esc(col.zona)} · ${clientesCol.length} clientes</div>
+          </div>
+          ${col.ativo ? `<span class="badge badge-ok"><span class="badge-dot"></span>Em rota</span>` : `<span class="badge badge-neutral">Offline</span>`}
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--borda);border-bottom:1px solid var(--borda);margin-bottom:10px;">
+          <div><div style="font-size:11px;color:var(--tinta-600);">Arrecadado hoje</div><div class="mono" style="font-weight:700;">${fmtMoney(col.arrecadadoHoje)}</div></div>
+          <div style="text-align:right;"><div style="font-size:11px;color:var(--tinta-600);">Meta diária</div><div class="mono" style="font-weight:700;">${fmtMoney(3000)}</div></div>
+        </div>
+        <div class="client-card-bar"><div class="client-card-bar-fill" style="width:${Math.min(100,col.arrecadadoHoje/3000*100).toFixed(0)}%; background:${col.cor}"></div></div>
+        <div style="margin-top:14px;">
+          ${clientesCol.slice(0,4).map((c,idx)=>`
+            <div class="route-stop">
+              <div class="route-stop-num">${idx+1}</div>
+              <div style="flex:1;font-size:13px;font-weight:600;">${esc(c.nome)}</div>
+              <div style="font-size:11.5px;color:var(--tinta-600);">${esc(c.zona)}</div>
+            </div>
+          `).join('') || `<div style="font-size:12.5px;color:var(--tinta-600);text-align:center;padding:10px 0;">Sem clientes atribuídos</div>`}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="card">
+    <div class="section-title">${ICONS.calendar} Bloqueio de feriados e dias sem cobrança</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${db.feriados.map(f=>`<span class="badge badge-neutral">${fmtDate(f)}</span>`).join('')}
+      <button class="chip" data-action="addFeriado">+ Adicionar data</button>
+    </div>
+  </div>`;
+}
+
+/* ================= RECIBOS ================= */
+/* ================= USUÁRIOS ================= */
+const PERFIS = {
+  'Administrador': {cor:'#0E9B76', bg:'var(--verde-100)', desc:'Acesso completo: financeiro, cadastros, relatórios, configurações e usuários.'},
+  'Gerente': {cor:'#3E7CFF', bg:'var(--azul-100)', desc:'Gerencia clientes, empréstimos, rotas e relatórios. Sem acesso a configurações do sistema.'},
+  'Cobrador': {cor:'#FF8C42', bg:'var(--laranja-100)', desc:'Acesso à Cobrança Rápida e aos clientes da própria rota. Não vê a carteira completa.'},
+  'Financeiro': {cor:'#8B6BFF', bg:'var(--lilas-100)', desc:'Acesso a relatórios, recibos e exportações. Não cria nem edita empréstimos.'},
+};
+function renderUsuarios(){
+  const pendentes = db.usuarios.filter(u=>!u.aprovado);
+  return `
+  ${pendentes.length ? `
+  <div class="card" style="margin-bottom:20px; border-color:var(--laranja-500); background:var(--laranja-100);">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:38px;height:38px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;color:#b95c00;flex-shrink:0;">${ICONS.alert}</div>
+      <div>
+        <div style="font-weight:700; font-size:14px; color:#7a4600;">${pendentes.length} conta(s) aguardando aprovação</div>
+        <div style="font-size:12.5px; color:#8a5200;">Revise o perfil e libere as carteiras antes de aprovar o acesso.</div>
+      </div>
+    </div>
+  </div>` : ''}
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); margin-bottom:20px;">
+    ${Object.entries(PERFIS).map(([nome,p])=>`
+      <div class="card" style="padding:16px;">
+        <span class="badge" style="background:${p.bg};color:${p.cor};margin-bottom:8px;"><span class="badge-dot" style="background:${p.cor};"></span>${nome}</span>
+        <div style="font-size:12.5px;color:var(--tinta-600);line-height:1.5;">${p.desc}</div>
+      </div>
+    `).join('')}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Carteiras</th><th>Último acesso</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      ${db.usuarios.map(u=>{
+        const p = PERFIS[u.perfil] || PERFIS['Cobrador'];
+        return `
+        <tr>
+          <td class="cell-name"><div class="avatar-tiny" style="background:${avatarColor(u.nome)}">${initials(u.nome)}</div>${esc(u.nome)}${u.viaGoogle?` <span class="badge badge-neutral" style="margin-left:4px;">${GOOGLE_G_ICON} Google</span>`:''}</td>
+          <td style="color:var(--tinta-600);">${esc(u.email)}</td>
+          <td><span class="badge" style="background:${p.bg};color:${p.cor};"><span class="badge-dot" style="background:${p.cor};"></span>${esc(u.perfil)}</span></td>
+          <td style="max-width:220px;">${carteirasBadges(u)}</td>
+          <td>${u.ultimoAcesso ? fmtDate(u.ultimoAcesso) : '—'}</td>
+          <td>${!u.aprovado ? `<span class="badge badge-warn"><span class="badge-dot"></span>Pendente</span>` : u.ativo ? `<span class="badge badge-ok"><span class="badge-dot"></span>Ativo</span>` : `<span class="badge badge-neutral">Inativo</span>`}</td>
+          <td style="display:flex;gap:6px;">
+            ${!u.aprovado ? `<button class="btn btn-primary btn-sm" data-action="aprovarUsuario" data-id="${u.id}">${ICONS.check} Aprovar</button>` : ''}
+            <button class="btn-icon" title="Editar" data-action="editarUsuario" data-id="${u.id}">${ICONS.edit}</button>
+            ${u.aprovado ? `<button class="btn btn-ghost btn-sm" data-action="toggleUsuarioStatus" data-id="${u.id}">${u.ativo?'Desativar':'Ativar'}</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--tinta-600)">Nenhum usuário cadastrado</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-top:20px;">
+    <div class="section-title">${ICONS.key} Autenticação</div>
+    <p style="font-size:13px;color:var(--tinta-600);">Neste protótipo, os usuários e senhas ficam apenas em memória local para fins de demonstração. Em produção, recomenda-se plugar Firebase Authentication (e-mail/senha ou login social) com Firestore Security Rules filtrando os dados por <span class="mono">perfil</span> e <span class="mono">carteiraIds</span> — o mesmo padrão de autenticação multiusuário já utilizado no B2You Financial.</p>
+  </div>`;
+}
+function carteirasBadges(u){
+  if(u.acessoTodasCarteiras) return `<span class="badge badge-ok"><span class="badge-dot"></span>Todas as carteiras</span>`;
+  const ids = u.carteiraIds || [];
+  if(!ids.length) return `<span class="badge badge-bad"><span class="badge-dot"></span>Nenhuma carteira</span>`;
+  return ids.map(id=>`<span class="badge badge-neutral" style="margin:2px;">${esc(nomeCarteira(id))}</span>`).join('');
+}
+
+function renderRecibos(){
+  const pagamentos = [...db.pagamentos].filter(p=>p.parcelaId).sort((a,b)=> new Date(b.data)-new Date(a.data));
+  return `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Recibo</th><th>Cliente</th><th>Data</th><th>Meio</th><th>Valor</th><th></th></tr></thead>
+      <tbody>
+      ${pagamentos.map(p=>{
+        const cli = db.clientes.find(c=>c.id===p.clienteId);
+        return `
+        <tr>
+          <td class="mono">#${p.id.slice(-6).toUpperCase()}</td>
+          <td class="cell-name"><div class="avatar-tiny" style="background:${avatarColor(cli.nome)}">${initials(cli.nome)}</div>${esc(cli.nome)}</td>
+          <td>${fmtDate(p.data)}</td>
+          <td><span class="badge badge-neutral">${meioLabel(p.meio)}</span></td>
+          <td class="mono">${fmtMoney(p.valor)}</td>
+          <td style="display:flex;gap:6px;">
+            <button class="btn-icon" title="Ver recibo" data-action="verRecibo" data-id="${p.id}">${ICONS.receipts}</button>
+            <button class="btn-icon" title="WhatsApp" data-action="whatsRecibo" data-id="${p.id}">${ICONS.whatsapp}</button>
+          </td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--tinta-600)">Nenhum recibo emitido ainda</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
+function meioLabel(m){ return {dinheiro:'Dinheiro', pix:'Pix', cartao:'Cartão', abatimento_extra:'Abatimento extra'}[m] || m; }
+
+/* ================= RELATÓRIOS ================= */
+function renderRelatorios(){
+  return `
+  <div class="grid two-col" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="section-title">Arrecadação mensal <span class="badge badge-neutral">últimos 6 meses</span></div>
+      <canvas id="chartMensal" height="140"></canvas>
+    </div>
+    <div class="card">
+      <div class="section-title">Distribuição por modo de juros</div>
+      <canvas id="chartModos" height="140"></canvas>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="section-title">Projeção de fluxo de caixa (próximos 30 dias)</div>
+    <canvas id="chartProjecao" height="110"></canvas>
+  </div>
+  <div class="card">
+    <div class="section-title">Exportar dados
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" data-action="exportCSV">${ICONS.download} Exportar CSV</button>
+        <button class="btn btn-primary btn-sm" data-action="exportPDFRelatorio">${ICONS.pdf} Relatório PDF</button>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--tinta-600);">Gere o fechamento mensal completo de cobranças em PDF/Excel para enviar à contabilidade, no mesmo padrão usado nos relatórios de Contas a Pagar.</p>
+  </div>`;
+}
+
+/* ================= CONFIGURAÇÕES ================= */
+function renderConfig(){
+  const c = db.config;
+  return `
+  <div class="grid two-col">
+    <div class="card">
+      <div class="section-title">Marca e personalização</div>
+      <div class="field">
+        <label>Nome da empresa</label>
+        <input id="cfgNome" value="${esc(c.nomeEmpresa)}">
+      </div>
+      <div class="field">
+        <label>Logo</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:56px;height:56px;border-radius:12px;background:var(--creme-50);border:1px dashed var(--borda);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            ${c.logoDataUrl? `<img src="${c.logoDataUrl}" style="width:100%;height:100%;object-fit:cover;">` : ICONS.logo_upload}
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btnUploadLogo">Enviar imagem</button>
+          <input type="file" id="fileLogo" accept="image/*" style="display:none;">
+        </div>
+      </div>
+      <div class="field">
+        <label>Cor de destaque</label>
+        <div style="display:flex;gap:8px;">
+          ${['#0E9B76','#3E7CFF','#8B6BFF','#FF8C42','#E5484D'].map(color=>`
+            <button data-action="setCor" data-cor="${color}" style="width:30px;height:30px;border-radius:50%;background:${color}; ${c.corDestaque===color?'box-shadow:0 0 0 3px #fff, 0 0 0 5px '+color+';':''}"></button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Moeda</label>
+        <select id="cfgMoeda"><option value="BRL" selected>Real Brasileiro (R$)</option></select>
+        <div class="field-hint">Multi-moeda disponível em planos superiores.</div>
+      </div>
+      <button class="btn btn-primary" data-action="salvarConfig">${ICONS.check} Salvar alterações</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">${ICONS.shield} Segurança e backup</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--borda);">
+        <div><div style="font-weight:600;font-size:13.5px;">Backup automático na nuvem</div><div style="font-size:12px;color:var(--tinta-600);">Sincronizado a cada alteração</div></div>
+        <span class="badge badge-ok"><span class="badge-dot"></span>Ativo</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--borda);">
+        <div><div style="font-weight:600;font-size:13.5px;">Última sincronização</div><div style="font-size:12px;color:var(--tinta-600);">Agora mesmo</div></div>
+        <button class="btn btn-ghost btn-sm">Forçar backup</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;">
+        <div><div style="font-weight:600;font-size:13.5px;">Recuperar em novo dispositivo</div><div style="font-size:12px;color:var(--tinta-600);">Login com e-mail cadastrado restaura tudo</div></div>
+        <button class="btn btn-ghost btn-sm">Ver instruções</button>
+      </div>
+
+      <div class="section-title" style="margin-top:24px;">Modelo de mensagem de cobrança</div>
+      <div class="field">
+        <textarea id="cfgMsg" rows="4">${esc(c.mensagemCobranca)}</textarea>
+        <div class="field-hint">Use {nome}, {valor} e {data} — serão substituídos automaticamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="section-title">${ICONS.wallet} Carteiras
+      <span class="badge badge-neutral">${db.carteiras.length} carteira(s)</span>
+    </div>
+    <p style="font-size:12.5px;color:var(--tinta-600);margin-bottom:14px;">Organize sua operação em carteiras separadas — como as filiais no B2You. Cada cliente pertence a uma carteira, e você pode filtrar Dashboard, Clientes, Empréstimos e Cobrança por carteira usando o seletor no topo da tela.</p>
+    ${!isAdmin() ? `<div class="field-hint" style="background:var(--laranja-100);color:#b95c00;padding:10px 12px;border-radius:10px;margin-bottom:14px;">${ICONS.shield} Apenas administradores podem criar, renomear ou excluir carteiras. Fale com um administrador para solicitar alterações.</div>` : ''}
+    <div class="table-wrap" style="margin-bottom:16px;">
+      <table>
+        <thead><tr><th>Nome</th><th>Clientes vinculados</th>${isAdmin()?'<th></th>':''}</tr></thead>
+        <tbody>
+        ${db.carteiras.map(cart=>{
+          const qtd = db.clientes.filter(c=>c.carteiraId===cart.id).length;
+          return `
+          <tr>
+            <td class="cell-name">${ICONS.wallet} ${esc(cart.nome)}</td>
+            <td>${qtd} cliente(s)</td>
+            ${isAdmin() ? `
+            <td style="display:flex;gap:6px;">
+              <button class="btn-icon" title="Renomear" data-action="renomearCarteira" data-id="${cart.id}">${ICONS.edit}</button>
+              <button class="btn-icon" title="Excluir" data-action="excluirCarteira" data-id="${cart.id}">${ICONS.trash}</button>
+            </td>` : ''}
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>
+    ${isAdmin() ? `
+    <div style="display:flex;gap:8px;">
+      <input id="novaCarteiraInput" placeholder="Nome da nova carteira (ex: Carteira Zona Sul)" style="flex:1;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;font-size:13.5px;">
+      <button class="btn btn-primary btn-sm" data-action="addCarteira">${ICONS.plus} Adicionar carteira</button>
+    </div>` : ''}
+  </div>`;
+}
+
+/* ================= MODALS ================= */
+function renderModal(){
+  const {name, payload} = state.modal;
+  let title='', body='', footer='';
+  if(name==='novoCliente'){
+    const isEdit = !!state.editingClienteId;
+    title = isEdit ? 'Editar cliente' : 'Novo cliente';
+    const gt = state.formGarantiaTipo;
+    const oc = state.formOutrosContratos;
+    const d = state.formDraft || {};
+    const opt = (val, current, label) => `<option value="${val}" ${current===val?'selected':''}>${label||val}</option>`;
+    const capitalAtual = parseFloat(d.mCapitalCli)||0;
+    const jurosAtual = parseFloat(d.mJurosCli)||0;
+    const qtdParcelasAtual = parseInt(d.mQtdParcelas)||1;
+    const valorJurosAtual = round2(capitalAtual * (jurosAtual/100));
+    const valorJurosTotalAtual = round2(valorJurosAtual * qtdParcelasAtual);
+    const valorParcelaAtual = round2((capitalAtual/qtdParcelasAtual) + valorJurosAtual);
+    body=`
+      <div class="form-divider">${ICONS.clients} Dados pessoais</div>
+      <div class="field"><label>Nome completo</label><input id="mNome" placeholder="Ex: Maria Silva" value="${esc(d.mNome||'')}"></div>
+      <div class="field-row">
+        <div class="field"><label>CPF</label><input id="mCPF" placeholder="000.000.000-00" value="${esc(d.mCPF||'')}"></div>
+        <div class="field"><label>RG</label><input id="mRG" placeholder="00.000.000-0" value="${esc(d.mRG||'')}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Celular</label><input id="mTel" placeholder="(11) 90000-0000" value="${esc(d.mTel||'')}"></div>
+        <div class="field"><label>Zona</label>
+          <select id="mZona">${['Zona Norte','Centro','Zona Sul','Zona Leste','Zona Oeste'].map(z=>opt(z,d.mZona||'Zona Norte')).join('')}</select>
+        </div>
+      </div>
+      <div class="field"><label>Endereço</label><input id="mEndereco" placeholder="Rua, número, bairro, cidade" value="${esc(d.mEndereco||'')}"></div>
+      <div class="field-row">
+        <div class="field"><label>Cobrador responsável</label>
+          <select id="mCobrador">${db.cobradores.map(c=>opt(c.id, d.mCobrador||db.cobradores[0].id, esc(c.nome))).join('')}</select>
+        </div>
+        <div class="field"><label>Carteira</label>
+          <select id="mCarteira">${db.carteiras.map(c=>opt(c.id, d.mCarteira||(state.carteiraFiltro!=='todas'?state.carteiraFiltro:db.carteiras[0].id), esc(c.nome))).join('')}</select>
+        </div>
+      </div>
+
+      <div class="form-divider">${ICONS.shield} Garantia</div>
+      <div class="field">
+        <div class="seg">
+          <button type="button" data-action="setGarantiaTipo" data-val="fiador" class="${gt==='fiador'?'active':''}">Fiador</button>
+          <button type="button" data-action="setGarantiaTipo" data-val="bens" class="${gt==='bens'?'active':''}">Bens</button>
+        </div>
+      </div>
+      ${gt==='fiador' ? `
+        <div class="field"><label>Nome do fiador</label><input id="mFiadorNome" placeholder="Nome completo" value="${esc(d.mFiadorNome||'')}"></div>
+        <div class="field-row">
+          <div class="field"><label>CPF do fiador</label><input id="mFiadorCPF" placeholder="000.000.000-00" value="${esc(d.mFiadorCPF||'')}"></div>
+          <div class="field"><label>Celular do fiador</label><input id="mFiadorCel" placeholder="(11) 90000-0000" value="${esc(d.mFiadorCel||'')}"></div>
+        </div>
+      ` : `
+        <div class="field"><label>Tipo de bem</label>
+          <select id="mBemTipo">${['Moto','Carro','Ouro'].map(b=>opt(b,d.mBemTipo||'Moto')).join('')}</select>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Marca</label><input id="mBemMarca" placeholder="Ex: Honda" value="${esc(d.mBemMarca||'')}"></div>
+          <div class="field"><label>Modelo</label><input id="mBemModelo" placeholder="Ex: CG 160" value="${esc(d.mBemModelo||'')}"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Ano</label><input id="mBemAno" placeholder="Ex: 2022" value="${esc(d.mBemAno||'')}"></div>
+          <div class="field"><label>Cor</label><input id="mBemCor" placeholder="Ex: Preta" value="${esc(d.mBemCor||'')}"></div>
+        </div>
+      `}
+
+      <div class="form-divider">${ICONS.alert} Contratos com terceiros</div>
+      <div class="field">
+        <label>Cliente possui outros contratos de empréstimos com terceiros?</label>
+        <div class="seg">
+          <button type="button" data-action="setOutrosContratos" data-val="nao" class="${oc==='nao'?'active':''}">Não</button>
+          <button type="button" data-action="setOutrosContratos" data-val="sim" class="${oc==='sim'?'active':''}">Sim</button>
+        </div>
+      </div>
+      ${oc==='sim' ? `
+        <div class="field-row">
+          <div class="field"><label>Nome (terceiro)</label><input id="mOutroNome" placeholder="Nome completo" value="${esc(d.mOutroNome||'')}"></div>
+          <div class="field"><label>Celular</label><input id="mOutroCel" placeholder="(11) 90000-0000" value="${esc(d.mOutroCel||'')}"></div>
+        </div>
+      ` : ''}
+
+      <div class="form-divider">${ICONS.wallet} Condições do empréstimo</div>
+      ${isEdit ? `<div class="field-hint" style="margin:-6px 0 14px;">Alterar valor, juros, parcelas ou data aqui atualiza automaticamente o empréstimo vinculado — inclusive em Cobrança, Dashboard e Relatórios.</div>` : ''}
+      <div class="field-row">
+        <div class="field"><label>Valor contratado (R$)</label><input id="mCapitalCli" type="number" placeholder="1000" value="${d.mCapitalCli||''}"></div>
+        <div class="field"><label>Porcentagem do juros (% a.m.)</label><input id="mJurosCli" type="number" step="0.1" placeholder="15" value="${d.mJurosCli||''}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Valor Juros</label>
+          <input id="valorJurosDisplay" class="mono" readonly value="${fmtMoney(valorJurosAtual)}" style="background:var(--creme-50);">
+        </div>
+        <div class="field"><label>Valor de Juros Total</label>
+          <input id="valorJurosTotalDisplay" class="mono" readonly value="${fmtMoney(valorJurosTotalAtual)}" style="background:var(--creme-50);">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Quantidade de parcelas</label><input id="mQtdParcelas" type="number" min="1" value="${d.mQtdParcelas||1}"></div>
+        <div class="field"><label>Valor da parcela</label>
+          <input id="valorParcelaDisplay" class="mono" readonly value="${fmtMoney(valorParcelaAtual)}" style="background:var(--verde-100); font-weight:700; color:var(--verde-700); border-color:var(--verde-500);">
+        </div>
+      </div>
+      <div class="field-hint" style="margin:-8px 0 16px;">Valor da parcela = (valor contratado ÷ parcelas) + valor do juros calculado sobre o contratado.</div>
+      <div class="field"><label>Forma de pagamento</label>
+        <div class="seg" id="segFormaPagCli">
+          ${['diario','semanal','mensal'].map((f)=>`<button type="button" data-val="${f}" class="${(d.formaPagCli||'diario')===f?'active':''}">${f==='diario'?'Diário':f==='semanal'?'Semanal':'Mensal'}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Data do pagamento</label><input id="mDataPagamento" type="date" value="${d.mDataPagamento || new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Juros de atraso mensal (%)</label><input id="mJurosAtraso" type="number" step="0.1" value="${d.mJurosAtraso!==undefined?d.mJurosAtraso:30}"></div>
+      </div>
+
+      <div class="form-divider">${ICONS.receipts} Anexo</div>
+      <div class="field">
+        <label>Comprovante (JPEG ou PDF)</label>
+        <input type="file" id="fileAnexoCliente" accept=".jpg,.jpeg,application/pdf,image/jpeg" style="display:none;">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnAnexarCliente">${ICONS.download} Anexar arquivo</button>
+        <span id="anexoNomeSpan" style="margin-left:10px; font-size:12.5px; color:var(--tinta-600);">${state.formAnexo? esc(state.formAnexo.nome) : 'Nenhum arquivo selecionado'}</span>
+        ${state.formAnexo ? `<button type="button" class="btn-icon" style="width:26px;height:26px;margin-left:6px;" data-action="removeAnexoCliente">${ICONS.x}</button>` : ''}
+      </div>
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Cancelar</button><button class="btn btn-primary" data-action="salvarCliente">${ICONS.check} ${isEdit?'Salvar alterações':'Cadastrar cliente'}</button>`;
+  }
+  else if(name==='novoEmprestimo'){
+    const empExist = payload && payload.editId ? db.emprestimos.find(e=>e.id===payload.editId) : null;
+    title = empExist ? 'Editar empréstimo' : 'Novo empréstimo';
+    body=`
+      <div class="field"><label>Cliente</label>
+        <select id="mCliente" ${empExist?'disabled':''}>${db.clientes.map(c=>`<option value="${c.id}" ${empExist&&empExist.clienteId===c.id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Capital emprestado (R$)</label><input id="mCapital" type="number" placeholder="1000000" value="${empExist?empExist.capital:1000}"></div>
+        <div class="field"><label>Taxa de juros (% ao mês)</label><input id="mTaxa" type="number" step="0.1" value="${empExist?empExist.taxaMensal:15}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Prazo (dias)</label><input id="mPrazo" type="number" value="${empExist?empExist.prazoDias:30}"></div>
+        <div class="field"><label>Início</label><input id="mInicio" type="date" value="${empExist? new Date(empExist.dataInicio).toISOString().slice(0,10) : new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div class="field"><label>Frequência de cobrança</label>
+        <div class="seg" id="segFreq">
+          ${['diario','semanal','quinzenal','mensal'].map((f)=>`<button type="button" data-val="${f}" class="${(empExist?empExist.frequencia:'diario')===f?'active':''}">${FREQ_LABEL[f]}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field"><label>Modo de juros</label>
+        <div class="seg" id="segModo">
+          ${['fixo','recalculado','capitalizacao'].map((m)=>`<button type="button" data-val="${m}" class="${(empExist?empExist.modo:'fixo')===m?'active':''}">${m==='fixo'?'Fixo':m==='recalculado'?'Recalculado':'Capitalização'}</button>`).join('')}
+        </div>
+        <div class="field-hint">Fixo: juros sobre capital original. Recalculado: juros sobre saldo devedor. Capitalização: tabela Price (parcelas fixas, juros compostos).</div>
+      </div>
+      ${empExist && empExist.parcelas.some(p=>p.pago>0) ? `<div class="field-hint" style="color:#b95c00;background:var(--laranja-100);padding:10px 12px;border-radius:10px;">⚠️ Este contrato já possui pagamentos registrados. Salvar irá recalcular todas as parcelas do zero, e o histórico de pagamentos vinculado será limpo.</div>` : ''}
+      ${empExist ? `<div class="field-hint">As alterações de valor e data se refletem automaticamente em Cobrança, Dashboard, Clientes e Relatórios.</div>` : ''}
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Cancelar</button><button class="btn btn-primary" data-action="salvarEmprestimo">${ICONS.check} ${empExist?'Salvar alterações':'Criar empréstimo'}</button>`;
+  }
+  else if(name==='novoCobrador'){
+    title='Novo cobrador';
+    body=`
+      <div class="field"><label>Nome</label><input id="mColNome" placeholder="Ex: Carla Nunes"></div>
+      <div class="field"><label>Zona de atuação</label>
+        <select id="mColZona"><option>Zona Norte</option><option>Centro</option><option>Zona Sul</option><option>Zona Leste</option><option>Zona Oeste</option></select>
+      </div>
+      <div class="field"><label>Meta diária de arrecadação (R$)</label><input id="mColMeta" type="number" value="3000"></div>
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Cancelar</button><button class="btn btn-primary" data-action="salvarCobrador">${ICONS.check} Adicionar cobrador</button>`;
+  }
+  else if(name==='novoUsuario'){
+    const isEditUsr = !!state.editingUsuarioId;
+    title = isEditUsr ? 'Editar usuário' : 'Novo usuário';
+    const ud = state.usrFormDraft || {};
+    const perfilAtual = ud.mUsrPerfil || 'Administrador';
+    const uopt = (val, current, label) => `<option value="${val}" ${current===val?'selected':''}>${label||val}</option>`;
+    body=`
+      <div class="field"><label>Nome completo</label><input id="mUsrNome" placeholder="Ex: Ana Paula" value="${esc(ud.mUsrNome||'')}"></div>
+      <div class="field"><label>E-mail</label><input id="mUsrEmail" type="email" placeholder="ana@credcerto.com.br" value="${esc(ud.mUsrEmail||'')}"></div>
+      <div class="field"><label>Perfil de acesso</label>
+        <select id="mUsrPerfil">${Object.keys(PERFIS).map(p=>uopt(p, perfilAtual)).join('')}</select>
+        <div class="field-hint" id="perfilHint">${PERFIS[perfilAtual].desc}</div>
+      </div>
+      <div class="field" id="campoCobradorVinculo" style="${perfilAtual==='Cobrador'?'':'display:none;'}">
+        <label>Vincular a qual cobrador?</label>
+        <select id="mUsrCobrador">${db.cobradores.map(c=>uopt(c.id, ud.mUsrCobrador||db.cobradores[0].id, esc(c.nome))).join('')}</select>
+      </div>
+
+      <div class="form-divider">${ICONS.wallet} Acesso a carteiras</div>
+      <div class="field">
+        <div class="seg">
+          <button type="button" data-action="setUsrAcessoTodas" data-val="todas" class="${state.usrAcessoTodas?'active':''}">Todas as carteiras</button>
+          <button type="button" data-action="setUsrAcessoTodas" data-val="selecionadas" class="${!state.usrAcessoTodas?'active':''}">Carteiras selecionadas</button>
+        </div>
+      </div>
+      ${!state.usrAcessoTodas ? `
+      <div class="field">
+        <label>Marque as carteiras que este usuário pode acessar</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${db.carteiras.map(c=>`<button type="button" class="chip ${state.usrCarteirasSelecionadas.includes(c.id)?'active':''}" data-action="toggleUsrCarteira" data-id="${c.id}">${state.usrCarteirasSelecionadas.includes(c.id)?ICONS.check:''} ${esc(c.nome)}</button>`).join('')}
+        </div>
+        ${state.usrCarteirasSelecionadas.length===0 ? `<div class="field-hint" style="color:var(--vermelho-500);">Selecione ao menos uma carteira, ou este usuário não verá nenhum dado.</div>` : ''}
+      </div>` : ''}
+
+      <div class="field" style="margin-top:16px;"><label>Senha temporária</label><input id="mUsrSenha" type="password" placeholder="Mínimo 6 caracteres" value="${esc(ud.mUsrSenha||'')}"></div>
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Cancelar</button><button class="btn btn-primary" data-action="salvarUsuario">${ICONS.check} ${isEditUsr?'Salvar alterações':'Adicionar usuário'}</button>`;
+  }
+  else if(name==='verCliente'){
+    const cli = db.clientes.find(c=>c.id===payload.id);
+    const emp = db.emprestimos.filter(e=>e.clienteId===cli.id);
+    title=cli.nome;
+    const g = cli.garantiaTipo;
+    body=`
+      <div style="display:flex;gap:16px;margin-bottom:18px;">
+        <div class="avatar-tiny" style="width:52px;height:52px;font-size:17px;background:${avatarColor(cli.nome)}">${initials(cli.nome)}</div>
+        <div>
+          <div style="font-size:12.5px;color:var(--tinta-600);">CPF ${esc(cli.doc||'—')}${cli.rg?' · RG '+esc(cli.rg):''} · ${esc(cli.tel)}</div>
+          <div style="font-size:12.5px;color:var(--tinta-600);">${esc(cli.zona)}${cli.endereco && cli.endereco!=='—' ? ' · '+esc(cli.endereco) : ''}</div>
+        </div>
+      </div>
+
+      ${g ? `
+      <div class="card" style="margin-bottom:12px;padding:14px;">
+        <div class="section-title" style="margin-bottom:8px;">${ICONS.shield} Garantia</div>
+        ${g==='fiador' && cli.fiador ? `
+          <div style="font-size:13px;"><b>Fiador:</b> ${esc(cli.fiador.nome)}</div>
+          <div style="font-size:12.5px;color:var(--tinta-600);">CPF ${esc(cli.fiador.cpf)} · ${esc(cli.fiador.celular)}</div>
+        ` : g==='bens' && cli.bem ? `
+          <div style="font-size:13px;"><b>${esc(cli.bem.tipo)}:</b> ${esc(cli.bem.marca)} ${esc(cli.bem.modelo)}</div>
+          <div style="font-size:12.5px;color:var(--tinta-600);">Ano ${esc(cli.bem.ano)} · Cor ${esc(cli.bem.cor)}</div>
+        ` : ''}
+      </div>` : ''}
+
+      ${cli.outrosContratos && cli.outrosContratos.possui ? `
+      <div class="card" style="margin-bottom:12px;padding:14px;border-color:var(--laranja-500);">
+        <div class="section-title" style="margin-bottom:6px;">${ICONS.alert} Possui contrato com terceiros</div>
+        <div style="font-size:13px;">${esc(cli.outrosContratos.nome)} · ${esc(cli.outrosContratos.celular)}</div>
+      </div>` : ''}
+
+      ${cli.anexo ? `
+      <div class="card" style="margin-bottom:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">${ICONS.receipts}<span style="font-size:13px;font-weight:600;">${esc(cli.anexo.nome)}</span></div>
+        <a href="${cli.anexo.dataUrl}" download="${esc(cli.anexo.nome)}" class="btn btn-ghost btn-sm">${ICONS.download} Baixar</a>
+      </div>` : ''}
+
+      ${cli.condicoesIniciais ? `
+      <div class="card" style="margin-bottom:12px;padding:14px;">
+        <div class="section-title" style="margin-bottom:8px;">Condições contratadas</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Valor contratado</span><b class="mono">${fmtMoney(cli.condicoesIniciais.valorContratado)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Valor Juros</span><b class="mono">${fmtMoney(cli.condicoesIniciais.valorJuros)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Valor de Juros Total</span><b class="mono">${fmtMoney(cli.condicoesIniciais.valorJurosTotal)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Quantidade de parcelas</span><b>${cli.condicoesIniciais.qtdParcelas}x</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Valor da parcela</span><b class="mono">${fmtMoney(cli.condicoesIniciais.valorParcela)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Juros de atraso mensal</span><b>${cli.condicoesIniciais.jurosAtrasoMensal}%</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Forma de pagamento</span><b>${FREQ_LABEL[cli.condicoesIniciais.formaPagamento]||cli.condicoesIniciais.formaPagamento}</b></div>
+      </div>` : ''}
+
+      ${emp.map(e=>`
+        <div class="card" style="margin-bottom:10px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span class="badge badge-neutral">${MODO_LABEL[e.modo]}</span>
+            ${e.status==='quitado'? `<span class="badge badge-ok"><span class="badge-dot"></span>Quitado</span>`:`<span class="badge badge-info"><span class="badge-dot"></span>Ativo</span>`}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Capital</span><b class="mono">${fmtMoney(e.capital)}</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Saldo devedor</span><b class="mono">${fmtMoney(saldoDevedor(e))}</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Progresso</span><b>${progressoEmprestimo(e).toFixed(0)}%</b></div>
+        </div>
+      `).join('') || `<p style="color:var(--tinta-600);font-size:13px;">Nenhum empréstimo cadastrado para este cliente.</p>`}
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Fechar</button><button class="btn btn-primary" data-action="novoEmprestimoFor" data-id="${cli.id}">${ICONS.plus} Novo empréstimo</button>`;
+  }
+  else if(name==='verEmprestimo'){
+    const emp = db.emprestimos.find(e=>e.id===payload.id);
+    const cli = db.clientes.find(c=>c.id===emp.clienteId);
+    title='Contrato #'+emp.id.slice(-5).toUpperCase()+' — '+cli.nome;
+    body=`
+      <div class="field-row" style="margin-bottom:6px;">
+        <div><div style="font-size:11px;color:var(--tinta-600);">Capital</div><div class="mono" style="font-weight:700;">${fmtMoney(emp.capital)}</div></div>
+        <div><div style="font-size:11px;color:var(--tinta-600);">Saldo devedor</div><div class="mono" style="font-weight:700;">${fmtMoney(saldoDevedor(emp))}</div></div>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Pagamento extra (abate capital e recalcula parcelas)</label>
+        <div style="display:flex;gap:8px;">
+          <input id="mExtra" type="number" placeholder="Valor em R$">
+          <button class="btn btn-primary btn-sm" data-action="pagarExtra" data-id="${emp.id}">Aplicar</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:14px;max-height:280px;overflow-y:auto;">
+        <table>
+          <thead><tr><th>#</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${emp.parcelas.map(p=>`
+              <tr>
+                <td>${p.numero}</td>
+                <td>${fmtDateShort(p.dataVencimento)}</td>
+                <td class="mono">${fmtMoney(p.valor)}</td>
+                <td>${statusBadge(p)}</td>
+                <td>${p.status!=='pago' ? `<button class="btn btn-ghost btn-sm" data-action="pagarParcela" data-emp="${emp.id}" data-parc="${p.id}">Pagar</button>` : ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Fechar</button>`;
+  }
+  else if(name==='verRecibo'){
+    const pag = db.pagamentos.find(p=>p.id===payload.id);
+    const cli = db.clientes.find(c=>c.id===pag.clienteId);
+    const emp = db.emprestimos.find(e=>e.id===pag.emprestimoId);
+    title='Recibo de pagamento';
+    body=`
+      <div class="receipt" id="reciboPrint">
+        <div class="receipt-logo">${esc(db.config.nomeEmpresa)}</div>
+        <div class="receipt-sub">Comprovante de pagamento</div>
+        <div class="receipt-row"><span>Cliente</span><b>${esc(cli.nome)}</b></div>
+        <div class="receipt-row"><span>Documento</span><span>${esc(cli.doc)}</span></div>
+        <div class="receipt-row"><span>Contrato</span><span>#${emp.id.slice(-5).toUpperCase()}</span></div>
+        <div class="receipt-row"><span>Data</span><span>${fmtDate(pag.data)}</span></div>
+        <div class="receipt-row"><span>Forma de pagamento</span><span>${meioLabel(pag.meio)}</span></div>
+        <div class="receipt-row total"><span>Total pago</span><span class="mono">${fmtMoney(pag.valor)}</span></div>
+        <div class="receipt-sign">Assinatura digital do cliente<br>✓ confirmada em ${fmtDate(pag.data)}</div>
+      </div>
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Fechar</button><button class="btn btn-ghost" data-action="printRecibo">${ICONS.pdf} Imprimir/PDF</button><button class="btn btn-primary" data-action="whatsRecibo" data-id="${pag.id}">${ICONS.whatsapp} Enviar</button>`;
+  }
+  else if(name==='addFeriado'){
+    title='Bloquear data de cobrança';
+    body=`<div class="field"><label>Data</label><input id="mFeriado" type="date"></div>`;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Cancelar</button><button class="btn btn-primary" data-action="salvarFeriado">${ICONS.check} Bloquear data</button>`;
+  }
+  else if(name==='trocarUsuario'){
+    const cu = currentUser();
+    title = isAdmin() ? 'Conta' : 'Minha conta';
+    const p = PERFIS[cu.perfil] || PERFIS['Cobrador'];
+    body=`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--creme-50);border-radius:12px;margin-bottom:18px;">
+        <div class="avatar-tiny" style="width:42px;height:42px;background:${avatarColor(cu.nome)}">${initials(cu.nome)}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${esc(cu.nome)}</div>
+          <div style="font-size:12px;color:var(--tinta-600);">${esc(cu.email)}</div>
+        </div>
+        <span class="badge" style="background:${p.bg};color:${p.cor};">${esc(cu.perfil)}</span>
+      </div>
+      ${isAdmin() ? `
+      <p style="font-size:12.5px;color:var(--tinta-600);margin-bottom:14px;">Visualizar como (apenas para teste — não altera a senha de ninguém):</p>
+      ${db.usuarios.map(u=>{
+        const pu = PERFIS[u.perfil] || PERFIS['Cobrador'];
+        const ativoAtual = u.id===state.currentUserId;
+        return `
+        <div data-action="selecionarUsuario" data-id="${u.id}" style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1.5px solid ${ativoAtual?'var(--verde-600)':'var(--borda)'};background:${ativoAtual?'var(--verde-100)':'#fff'};margin-bottom:8px;cursor:pointer;">
+          <div class="avatar-tiny" style="width:36px;height:36px;background:${avatarColor(u.nome)}">${initials(u.nome)}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:13.5px;">${esc(u.nome)}</div>
+            <div style="font-size:11.5px;color:var(--tinta-600);">${esc(u.email)}</div>
+          </div>
+          <span class="badge" style="background:${pu.bg};color:${pu.cor};">${esc(u.perfil)}</span>
+          ${ativoAtual ? ICONS.check : ''}
+        </div>`;
+      }).join('')}
+      ` : ''}
+    `;
+    footer=`<button class="btn btn-ghost" data-action="closeModal">Fechar</button><button class="btn btn-danger-ghost" data-action="sairSessao">${ICONS.x} Sair</button>`;
+  }
+
+  return `
+  <div class="modal-overlay no-print" data-action="overlayClose">
+    <div class="modal">
+      <div class="modal-header"><div class="modal-title">${title}</div><button class="modal-close" data-action="closeModal">${ICONS.x}</button></div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-footer">${footer}</div>
+    </div>
+  </div>`;
+}
+
+/* ================= EVENTOS ================= */
+function afterRender(){
+  if(!window._docListenersInit){
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('input', onDocInput);
+    window._docListenersInit = true;
+  }
+  if(state.page==='dashboard') setTimeout(drawDashboardCharts,0);
+  if(state.page==='relatorios') setTimeout(drawRelatorioCharts,0);
+  const segFreq = document.getElementById('segFreq');
+  const segModo = document.getElementById('segModo');
+  const segFormaPagCli = document.getElementById('segFormaPagCli');
+  [segFreq, segModo, segFormaPagCli].forEach(seg=>{
+    if(!seg) return;
+    seg.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    }));
+  });
+  const fileLogo = document.getElementById('fileLogo');
+  const btnUpload = document.getElementById('btnUploadLogo');
+  if(btnUpload) btnUpload.addEventListener('click', ()=> fileLogo.click());
+  if(fileLogo) fileLogo.addEventListener('change', (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ db.config.logoDataUrl = reader.result; render(); toast('Logo atualizada'); };
+    reader.readAsDataURL(file);
+  });
+  const fileAnexo = document.getElementById('fileAnexoCliente');
+  const btnAnexar = document.getElementById('btnAnexarCliente');
+  if(btnAnexar) btnAnexar.addEventListener('click', ()=> fileAnexo.click());
+  if(fileAnexo) fileAnexo.addEventListener('change', (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const tiposOk = ['image/jpeg','application/pdf'];
+    if(!tiposOk.includes(file.type)){ toast('Envie apenas arquivos JPEG ou PDF', ICONS.alert); return; }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      collectClienteDraft();
+      state.formAnexo = {nome:file.name, tipo:file.type, dataUrl:reader.result};
+      render(); toast('Comprovante anexado');
+    };
+    reader.readAsDataURL(file);
+  });
+  const perfilSelect = document.getElementById('mUsrPerfil');
+  if(perfilSelect) perfilSelect.addEventListener('change', ()=>{
+    const perfil = perfilSelect.value;
+    state.usrFormDraft.mUsrPerfil = perfil;
+    const hint = document.getElementById('perfilHint');
+    const campoCobrador = document.getElementById('campoCobradorVinculo');
+    if(hint) hint.textContent = PERFIS[perfil].desc;
+    if(campoCobrador) campoCobrador.style.display = perfil==='Cobrador' ? 'block' : 'none';
+  });
+  const carteiraFiltroSelect = document.getElementById('carteiraFiltroSelect');
+  if(carteiraFiltroSelect) carteiraFiltroSelect.addEventListener('change', (e)=>{
+    state.carteiraFiltro = e.target.value;
+    render();
+  });
+}
+
+function onDocInput(e){
+  if(e.target.id==='globalSearch') state.clientesBusca = e.target.value;
+  if(e.target.id==='globalSearch' && state.page==='clientes'){
+    document.getElementById('pageContent').innerHTML = renderPage();
+  }
+  if(e.target.id==='carteiraFiltroSelect'){
+    state.carteiraFiltro = e.target.value;
+    render();
+    return;
+  }
+  if(['mCapitalCli','mJurosCli','mQtdParcelas'].includes(e.target.id)){
+    const capital = parseFloat(document.getElementById('mCapitalCli').value) || 0;
+    const juros = parseFloat(document.getElementById('mJurosCli').value) || 0;
+    const qtd = parseInt(document.getElementById('mQtdParcelas').value) || 1;
+    const valorJuros = round2(capital * (juros/100));
+    const valorJurosTotal = round2(valorJuros * qtd);
+    const valorParcela = round2((capital/qtd) + valorJuros);
+    const dJ = document.getElementById('valorJurosDisplay');
+    const dJT = document.getElementById('valorJurosTotalDisplay');
+    const dP = document.getElementById('valorParcelaDisplay');
+    if(dJ) dJ.value = fmtMoney(valorJuros);
+    if(dJT) dJT.value = fmtMoney(valorJurosTotal);
+    if(dP) dP.value = fmtMoney(valorParcela);
+  }
+}
+
+function onDocClick(e){
+  const navEl = e.target.closest('[data-nav]');
+  if(navEl){ navigate(navEl.dataset.nav); return; }
+
+  const overlay = e.target.closest('[data-action="overlayClose"]');
+  if(overlay && e.target===overlay){ closeModal(); return; }
+
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const action = el.dataset.action;
+
+  switch(action){
+    case 'novoCliente':
+      state.formGarantiaTipo='fiador'; state.formOutrosContratos='nao'; state.formAnexo=null; state.formDraft={}; state.editingClienteId=null;
+      openModal('novoCliente');
+      break;
+    case 'editarCliente': {
+      const cli = db.clientes.find(c=>c.id===el.dataset.id);
+      state.editingClienteId = cli.id;
+      state.formGarantiaTipo = cli.garantiaTipo || 'fiador';
+      state.formOutrosContratos = (cli.outrosContratos && cli.outrosContratos.possui) ? 'sim' : 'nao';
+      state.formAnexo = cli.anexo || null;
+      const ci = cli.condicoesIniciais || {};
+      state.formDraft = {
+        mNome: cli.nome, mCPF: cli.doc==='—'?'':cli.doc, mRG: cli.rg==='—'?'':cli.rg, mTel: cli.tel==='—'?'':cli.tel,
+        mZona: cli.zona, mEndereco: cli.endereco==='—'?'':cli.endereco, mCobrador: cli.cobradorId, mCarteira: cli.carteiraId,
+        mFiadorNome: cli.fiador?cli.fiador.nome:'', mFiadorCPF: cli.fiador?cli.fiador.cpf:'', mFiadorCel: cli.fiador?cli.fiador.celular:'',
+        mBemTipo: cli.bem?cli.bem.tipo:'Moto', mBemMarca: cli.bem?cli.bem.marca:'', mBemModelo: cli.bem?cli.bem.modelo:'', mBemAno: cli.bem?cli.bem.ano:'', mBemCor: cli.bem?cli.bem.cor:'',
+        mOutroNome: (cli.outrosContratos&&cli.outrosContratos.nome)||'', mOutroCel: (cli.outrosContratos&&cli.outrosContratos.celular)||'',
+        mCapitalCli: ci.valorContratado||'', mJurosCli: ci.porcentagemJuros||'', mQtdParcelas: ci.qtdParcelas||1,
+        mDataPagamento: ci.dataPagamento||'', mJurosAtraso: ci.jurosAtrasoMensal!==undefined?ci.jurosAtrasoMensal:30,
+        formaPagCli: ci.formaPagamento||'diario',
+      };
+      openModal('novoCliente', {editId: cli.id});
+      break;
+    }
+    case 'excluirCliente': {
+      const cli = db.clientes.find(c=>c.id===el.dataset.id);
+      const empsCli = db.emprestimos.filter(e=>e.clienteId===cli.id);
+      const pagsCli = db.pagamentos.filter(p=>p.clienteId===cli.id);
+      const msg = empsCli.length
+        ? `Isso também excluirá ${empsCli.length} empréstimo(s) e ${pagsCli.length} pagamento(s) associados a ${cli.nome}. Deseja continuar?`
+        : `Excluir o cliente ${cli.nome}?`;
+      if(!confirm(msg)) return;
+      db.emprestimos = db.emprestimos.filter(e=>e.clienteId!==cli.id);
+      db.pagamentos = db.pagamentos.filter(p=>p.clienteId!==cli.id);
+      db.clientes = db.clientes.filter(c=>c.id!==cli.id);
+      toast('Cliente excluído');
+      render();
+      break;
+    }
+    case 'setGarantiaTipo': collectClienteDraft(); state.formGarantiaTipo = el.dataset.val; render(); break;
+    case 'setOutrosContratos': collectClienteDraft(); state.formOutrosContratos = el.dataset.val; render(); break;
+    case 'removeAnexoCliente': collectClienteDraft(); state.formAnexo = null; render(); break;
+    case 'novoEmprestimo': state.editingEmprestimoId=null; openModal('novoEmprestimo'); break;
+    case 'editarEmprestimo': state.editingEmprestimoId = el.dataset.id; openModal('novoEmprestimo', {editId: el.dataset.id}); break;
+    case 'excluirEmprestimo': {
+      const emp = db.emprestimos.find(e=>e.id===el.dataset.id);
+      const cli = db.clientes.find(c=>c.id===emp.clienteId);
+      if(!confirm('Excluir o empréstimo de '+(cli?cli.nome:'cliente')+'? Os pagamentos vinculados também serão removidos.')) return;
+      db.pagamentos = db.pagamentos.filter(p=>p.emprestimoId!==emp.id);
+      db.emprestimos = db.emprestimos.filter(e=>e.id!==emp.id);
+      toast('Empréstimo excluído');
+      render();
+      break;
+    }
+    case 'novoCobrador': openModal('novoCobrador'); break;
+    case 'novoUsuario':
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar usuários', ICONS.alert); return; }
+      state.editingUsuarioId=null; state.usrFormDraft={}; state.usrAcessoTodas=true; state.usrCarteirasSelecionadas=[];
+      openModal('novoUsuario');
+      break;
+    case 'editarUsuario': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar usuários', ICONS.alert); return; }
+      const u = db.usuarios.find(x=>x.id===el.dataset.id);
+      state.editingUsuarioId = u.id;
+      state.usrAcessoTodas = !!u.acessoTodasCarteiras;
+      state.usrCarteirasSelecionadas = (u.carteiraIds||[]).slice();
+      state.usrFormDraft = { mUsrNome:u.nome, mUsrEmail:u.email, mUsrPerfil:u.perfil, mUsrCobrador:u.cobradorId||'', mUsrSenha:'' };
+      openModal('novoUsuario');
+      break;
+    }
+    case 'trocarUsuario': openModal('trocarUsuario'); break;
+    case 'setAuthMode': {
+      collectAuthDraft();
+      state.authMode = el.dataset.val;
+      state.authError = '';
+      render();
+      break;
+    }
+    case 'fazerLogin': {
+      const email = document.getElementById('authEmail').value.trim().toLowerCase();
+      const senha = document.getElementById('authSenha').value;
+      if(!email || !senha){ state.authError='Preencha e-mail e senha.'; render(); return; }
+      const user = db.usuarios.find(u=>u.email.toLowerCase()===email);
+      if(!user){ state.authError='Não encontramos uma conta com este e-mail.'; render(); return; }
+      if(user.senha && user.senha!==senha){ state.authError='Senha incorreta.'; render(); return; }
+      if(!user.aprovado){ state.authPendingNome = user.nome; state.authMode='pending'; state.authError=''; render(); return; }
+      if(!user.ativo){ state.authError='Este usuário está desativado. Fale com um administrador.'; render(); return; }
+      user.ultimoAcesso = todayISO();
+      state.session = {userId:user.id};
+      state.currentUserId = user.id;
+      state.authError=''; state.authDraft={};
+      render();
+      toast('Bem-vindo, '+user.nome+'!', ICONS.check);
+      break;
+    }
+    case 'criarConta': {
+      const nome = document.getElementById('authNome').value.trim();
+      const email = document.getElementById('authEmailSignup').value.trim().toLowerCase();
+      const senha = document.getElementById('authSenhaSignup').value;
+      const confirmar = document.getElementById('authSenhaConfirm').value;
+      if(!nome || !email){ state.authError='Preencha nome e e-mail.'; render(); return; }
+      if(senha.length<6){ state.authError='A senha deve ter ao menos 6 caracteres.'; render(); return; }
+      if(senha!==confirmar){ state.authError='As senhas não coincidem.'; render(); return; }
+      if(db.usuarios.some(u=>u.email.toLowerCase()===email)){ state.authError='Já existe uma conta com este e-mail.'; render(); return; }
+      const novoUsuario = {id:uid('usr'), nome, email, senha, viaGoogle:false, perfil:'Cobrador', cobradorId:null, acessoTodasCarteiras:false, carteiraIds:[], ativo:true, aprovado:false, criadoEm:todayISO(), ultimoAcesso:null};
+      db.usuarios.push(novoUsuario);
+      state.authError=''; state.authDraft={};
+      state.authPendingNome = nome;
+      state.authMode = 'pending';
+      render();
+      break;
+    }
+    case 'confirmarGoogleAuth': {
+      const email = document.getElementById('authGoogleEmail').value.trim().toLowerCase();
+      if(!email || !email.includes('@')){ state.authError='Informe um e-mail válido.'; render(); return; }
+      let user = db.usuarios.find(u=>u.email.toLowerCase()===email);
+      if(!user){
+        const nomeSugerido = email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        user = {id:uid('usr'), nome:nomeSugerido, email, senha:null, viaGoogle:true, perfil:'Cobrador', cobradorId:null, acessoTodasCarteiras:false, carteiraIds:[], ativo:true, aprovado:false, criadoEm:todayISO(), ultimoAcesso:null};
+        db.usuarios.push(user);
+      }
+      if(!user.aprovado){ state.authPendingNome = user.nome; state.authMode='pending'; state.authError=''; render(); return; }
+      if(!user.ativo){ state.authError='Este usuário está desativado. Fale com um administrador.'; render(); return; }
+      user.ultimoAcesso = todayISO();
+      state.session = {userId:user.id};
+      state.currentUserId = user.id;
+      state.authError=''; state.authDraft={};
+      render();
+      toast('Bem-vindo de volta, '+user.nome+'!', ICONS.check);
+      break;
+    }
+    case 'sairSessao': {
+      state.session = null;
+      state.modal = null;
+      state.authMode = 'login';
+      state.authDraft = {}; state.authError='';
+      render();
+      break;
+    }
+    case 'selecionarUsuario': {
+      state.currentUserId = el.dataset.id;
+      state.carteiraFiltro = 'todas';
+      closeModal();
+      toast('Agora navegando como '+currentUser().nome);
+      navigate('dashboard');
+      break;
+    }
+    case 'setUsrAcessoTodas': collectUsrDraft(); state.usrAcessoTodas = el.dataset.val==='todas'; render(); break;
+    case 'toggleUsrCarteira': {
+      collectUsrDraft();
+      const id = el.dataset.id;
+      const idx = state.usrCarteirasSelecionadas.indexOf(id);
+      if(idx>=0) state.usrCarteirasSelecionadas.splice(idx,1); else state.usrCarteirasSelecionadas.push(id);
+      render();
+      break;
+    }
+    case 'closeModal': closeModal(); break;
+    case 'verCliente': openModal('verCliente', {id: el.dataset.id}); break;
+    case 'verEmprestimo': openModal('verEmprestimo', {id: el.dataset.id}); break;
+    case 'novoEmprestimoFor': state.editingEmprestimoId=null; closeModal(); setTimeout(()=>openModal('novoEmprestimo'),0); break;
+    case 'verRecibo': openModal('verRecibo', {id: el.dataset.id}); break;
+    case 'whatsRecibo': {
+      const pag = db.pagamentos.find(p=>p.id===el.dataset.id);
+      const cli = db.clientes.find(c=>c.id===pag.clienteId);
+      toast('Recibo enviado ao WhatsApp de '+cli.nome, ICONS.whatsapp);
+      break;
+    }
+    case 'printRecibo': window.print(); break;
+    case 'addFeriado': openModal('addFeriado'); break;
+    case 'salvarFeriado': {
+      const v = document.getElementById('mFeriado').value;
+      if(v){ db.feriados.push(v); toast('Data bloqueada para cobrança'); }
+      closeModal(); navigate('rotas');
+      break;
+    }
+    case 'salvarCliente': {
+      const nome = document.getElementById('mNome').value.trim();
+      if(!nome){ toast('Informe o nome do cliente', ICONS.alert); return; }
+      const gt = state.formGarantiaTipo;
+      const oc = state.formOutrosContratos;
+      const segPagEl = document.getElementById('segFormaPagCli').querySelector('.active');
+      const formaPag = segPagEl ? segPagEl.dataset.val : 'diario';
+      const capital = parseFloat(document.getElementById('mCapitalCli').value)||0;
+      const jurosPct = parseFloat(document.getElementById('mJurosCli').value)||0;
+      const qtdParcelas = parseInt(document.getElementById('mQtdParcelas').value)||1;
+      const jurosAtraso = parseFloat(document.getElementById('mJurosAtraso').value)||0;
+      const dataPagamento = document.getElementById('mDataPagamento').value || new Date().toISOString().slice(0,10);
+      const carteiraId = document.getElementById('mCarteira').value;
+      const valorJuros = round2(capital * (jurosPct/100));
+      const valorJurosTotal = round2(valorJuros * qtdParcelas);
+      const valorParcela = round2((capital/qtdParcelas) + valorJuros);
+
+      const dadosCliente = {
+        nome,
+        doc: document.getElementById('mCPF').value || '—',
+        rg: document.getElementById('mRG').value || '—',
+        tel: document.getElementById('mTel').value || '—',
+        endereco: document.getElementById('mEndereco').value || '—',
+        zona: document.getElementById('mZona').value,
+        cobradorId: document.getElementById('mCobrador').value,
+        carteiraId,
+        garantiaTipo: gt,
+        fiador: gt==='fiador' ? {
+          nome: document.getElementById('mFiadorNome').value || '—',
+          cpf: document.getElementById('mFiadorCPF').value || '—',
+          celular: document.getElementById('mFiadorCel').value || '—',
+        } : null,
+        bem: gt==='bens' ? {
+          tipo: document.getElementById('mBemTipo').value,
+          marca: document.getElementById('mBemMarca').value || '—',
+          modelo: document.getElementById('mBemModelo').value || '—',
+          ano: document.getElementById('mBemAno').value || '—',
+          cor: document.getElementById('mBemCor').value || '—',
+        } : null,
+        outrosContratos: oc==='sim' ? {
+          possui:true,
+          nome: document.getElementById('mOutroNome').value || '—',
+          celular: document.getElementById('mOutroCel').value || '—',
+        } : {possui:false},
+        condicoesIniciais: { valorContratado:capital, formaPagamento:formaPag, dataPagamento, porcentagemJuros:jurosPct, qtdParcelas, valorJuros, valorJurosTotal, valorParcela, jurosAtrasoMensal:jurosAtraso },
+        anexo: state.formAnexo,
+      };
+
+      if(state.editingClienteId){
+        const cli = db.clientes.find(c=>c.id===state.editingClienteId);
+        Object.assign(cli, dadosCliente);
+        let emprestimoSincronizado = false;
+        if(capital>0){
+          const empsDoCliente = db.emprestimos.filter(e=>e.clienteId===cli.id);
+          if(empsDoCliente.length===1){
+            const emp = empsDoCliente[0];
+            const parcelas = gerarCronogramaCadastro({capital, jurosPct, qtdParcelas, frequencia:formaPag, dataInicio:new Date(dataPagamento).toISOString()});
+            db.pagamentos = db.pagamentos.filter(p=>p.emprestimoId!==emp.id);
+            Object.assign(emp, {capital, taxaMensal:jurosPct, prazoDias:FREQ_DIAS[formaPag]*qtdParcelas, frequencia:formaPag, modo:'fixo', dataInicio:new Date(dataPagamento).toISOString(), jurosAtrasoMensal:jurosAtraso, parcelas, status:'ativo'});
+            emprestimoSincronizado = true;
+          } else if(empsDoCliente.length===0){
+            criarEmprestimoDoCadastro({
+              clienteId: cli.id, capital, jurosPct, qtdParcelas, frequencia: formaPag,
+              dataInicio: new Date(dataPagamento).toISOString(), jurosAtrasoMensal: jurosAtraso,
+            }, {silent:true});
+            emprestimoSincronizado = true;
+          }
+          // se houver mais de 1 empréstimo para o cliente, a sincronização automática é ambígua —
+          // o usuário deve editar o contrato específico em Empréstimos.
+        }
+        state.editingClienteId = null;
+        state.formAnexo=null; state.formDraft={};
+        closeModal(); navigate('clientes');
+        toast('Cliente '+nome+' atualizado'+(emprestimoSincronizado?' e empréstimo sincronizado':''));
+      } else {
+        const cliente = { id: uid('cli'), criadoEm: todayISO(), status:'ativo', ...dadosCliente };
+        db.clientes.push(cliente);
+        if(capital>0){
+          criarEmprestimoDoCadastro({
+            clienteId: cliente.id,
+            capital,
+            jurosPct,
+            qtdParcelas,
+            frequencia: formaPag,
+            dataInicio: new Date(dataPagamento).toISOString(),
+            jurosAtrasoMensal: jurosAtraso,
+          }, {silent:true});
+        }
+        state.formAnexo=null; state.formDraft={};
+        closeModal(); navigate('clientes');
+        toast('Cliente '+nome+' cadastrado'+(capital>0?' e empréstimo criado':''));
+      }
+      break;
+    }
+    case 'salvarEmprestimo': {
+      const clienteId = document.getElementById('mCliente').value;
+      const capital = parseFloat(document.getElementById('mCapital').value)||0;
+      const taxaMensal = parseFloat(document.getElementById('mTaxa').value)||0;
+      const prazoDias = parseInt(document.getElementById('mPrazo').value)||30;
+      const dataInicio = new Date(document.getElementById('mInicio').value).toISOString();
+      const frequencia = document.getElementById('segFreq').querySelector('.active').dataset.val;
+      const modo = document.getElementById('segModo').querySelector('.active').dataset.val;
+      if(!clienteId || capital<=0){ toast('Preencha os dados do empréstimo', ICONS.alert); return; }
+      if(state.editingEmprestimoId){
+        const emp = db.emprestimos.find(e=>e.id===state.editingEmprestimoId);
+        const parcelas = gerarCronograma({capital, taxaMensal, prazoDias, frequencia, modo, dataInicio});
+        db.pagamentos = db.pagamentos.filter(p=>p.emprestimoId!==emp.id);
+        Object.assign(emp, {capital, taxaMensal, prazoDias, frequencia, modo, dataInicio, parcelas, status:'ativo'});
+        state.editingEmprestimoId = null;
+        toast('Empréstimo atualizado');
+      } else {
+        criarEmprestimo({clienteId, capital, taxaMensal, prazoDias, frequencia, modo, dataInicio});
+      }
+      closeModal(); navigate('emprestimos');
+      break;
+    }
+    case 'salvarCobrador': {
+      const nome = document.getElementById('mColNome').value.trim();
+      if(!nome){ toast('Informe o nome do cobrador', ICONS.alert); return; }
+      db.cobradores.push({id:uid('col'), nome, zona:document.getElementById('mColZona').value, cor:AVATAR_COLORS[db.cobradores.length%AVATAR_COLORS.length], ativo:true, arrecadadoHoje:0});
+      closeModal(); navigate('rotas');
+      toast('Cobrador adicionado');
+      break;
+    }
+    case 'salvarUsuario': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar usuários', ICONS.alert); return; }
+      const nome = document.getElementById('mUsrNome').value.trim();
+      const email = document.getElementById('mUsrEmail').value.trim();
+      const senha = document.getElementById('mUsrSenha').value;
+      if(!nome || !email){ toast('Informe nome e e-mail', ICONS.alert); return; }
+      if(senha && senha.length<6){ toast('A senha deve ter ao menos 6 caracteres', ICONS.alert); return; }
+      if(!state.usrAcessoTodas && state.usrCarteirasSelecionadas.length===0){ toast('Selecione ao menos uma carteira para este usuário', ICONS.alert); return; }
+      const perfil = document.getElementById('mUsrPerfil').value;
+      const cobradorId = perfil==='Cobrador' ? document.getElementById('mUsrCobrador').value : null;
+      const acessoTodasCarteiras = state.usrAcessoTodas;
+      const carteiraIds = acessoTodasCarteiras ? [] : state.usrCarteirasSelecionadas.slice();
+
+      if(state.editingUsuarioId){
+        const u = db.usuarios.find(x=>x.id===state.editingUsuarioId);
+        Object.assign(u, {nome, email, perfil, cobradorId, acessoTodasCarteiras, carteiraIds});
+        if(senha) u.senha = senha;
+        state.editingUsuarioId = null;
+        closeModal(); navigate('usuarios');
+        toast('Usuário '+nome+' atualizado');
+      } else {
+        db.usuarios.push({id:uid('usr'), nome, email, senha:senha||null, viaGoogle:false, perfil, cobradorId, acessoTodasCarteiras, carteiraIds, ativo:true, aprovado:true, criadoEm:todayISO(), ultimoAcesso:null});
+        closeModal(); navigate('usuarios');
+        toast('Usuário '+nome+' adicionado');
+      }
+      break;
+    }
+    case 'aprovarUsuario': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar usuários', ICONS.alert); return; }
+      const u = db.usuarios.find(x=>x.id===el.dataset.id);
+      u.aprovado = true;
+      render();
+      toast('Acesso de '+u.nome+' aprovado');
+      break;
+    }
+    case 'toggleUsuarioStatus': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar usuários', ICONS.alert); return; }
+      const u = db.usuarios.find(x=>x.id===el.dataset.id);
+      u.ativo = !u.ativo;
+      render();
+      toast(u.ativo ? 'Usuário reativado' : 'Usuário desativado');
+      break;
+    }
+    case 'pagarParcela': {
+      const emp = db.emprestimos.find(x=>x.id===el.dataset.emp);
+      const parc = emp.parcelas.find(p=>p.id===el.dataset.parc);
+      registrarPagamento(emp.id, parc.id, parc.valor-parc.pago);
+      openModal('verEmprestimo', {id: emp.id});
+      break;
+    }
+    case 'pagarExtra': {
+      const val = parseFloat(document.getElementById('mExtra').value)||0;
+      if(val<=0){ toast('Informe um valor válido', ICONS.alert); return; }
+      aplicarPagamentoExtra(el.dataset.id, val);
+      openModal('verEmprestimo', {id: el.dataset.id});
+      break;
+    }
+    case 'cobrarRapido': {
+      const emp = db.emprestimos.find(x=>x.id===el.dataset.emp);
+      const parc = emp.parcelas.find(p=>p.id===el.dataset.parc);
+      const cliente = db.clientes.find(c=>c.id===emp.clienteId);
+      state.cobrancaFlow = {step:1, emp, parcela:parc, cliente, meio:null, valorFinal: parc.valor-parc.pago};
+      navigate('cobranca');
+      break;
+    }
+    case 'tapNext': {
+      const f = state.cobrancaFlow;
+      if(f.step===1){ f.step=2; render(); }
+      else if(f.step===2){
+        registrarPagamento(f.emp.id, f.parcela.id, f.valorFinal, {meio:f.meio});
+        f.step=3; render();
+      }
+      break;
+    }
+    case 'tapBack': state.cobrancaFlow.step=1; render(); break;
+    case 'setMeio': state.cobrancaFlow.meio = el.dataset.meio; render(); break;
+    case 'tapValorExtra': {
+      const novo = prompt('Valor recebido (R$):', state.cobrancaFlow.valorFinal.toFixed(2));
+      if(novo){ state.cobrancaFlow.valorFinal = parseFloat(novo)||state.cobrancaFlow.valorFinal; }
+      state.cobrancaFlow.step=2; render();
+      break;
+    }
+    case 'tapImprimir': openModal('verRecibo', {id: db.pagamentos[db.pagamentos.length-1].id}); break;
+    case 'tapWhats': toast('Recibo enviado por WhatsApp', ICONS.whatsapp); break;
+    case 'tapFechar': state.cobrancaFlow=null; navigate('cobranca'); break;
+    case 'tapCancelar': state.cobrancaFlow=null; navigate('cobranca'); break;
+    case 'setCor': db.config.corDestaque = el.dataset.cor; render(); navigate('config'); break;
+    case 'salvarConfig': {
+      db.config.nomeEmpresa = document.getElementById('cfgNome').value || db.config.nomeEmpresa;
+      db.config.mensagemCobranca = document.getElementById('cfgMsg').value;
+      toast('Configurações salvas');
+      render();
+      break;
+    }
+    case 'addCarteira': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar carteiras', ICONS.alert); return; }
+      const input = document.getElementById('novaCarteiraInput');
+      const nome = input.value.trim();
+      if(!nome){ toast('Informe um nome para a carteira', ICONS.alert); return; }
+      db.carteiras.push({id:uid('cart'), nome, criadaEm:todayISO()});
+      toast('Carteira "'+nome+'" criada');
+      render();
+      break;
+    }
+    case 'renomearCarteira': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar carteiras', ICONS.alert); return; }
+      const cart = db.carteiras.find(c=>c.id===el.dataset.id);
+      const novoNome = prompt('Novo nome da carteira:', cart.nome);
+      if(novoNome && novoNome.trim()){ cart.nome = novoNome.trim(); toast('Carteira renomeada'); render(); }
+      break;
+    }
+    case 'excluirCarteira': {
+      if(!isAdmin()){ toast('Apenas administradores podem gerenciar carteiras', ICONS.alert); return; }
+      const cart = db.carteiras.find(c=>c.id===el.dataset.id);
+      const qtd = db.clientes.filter(c=>c.carteiraId===cart.id).length;
+      if(db.carteiras.length<=1){ toast('É necessário manter ao menos uma carteira', ICONS.alert); return; }
+      if(qtd>0){ toast('Não é possível excluir: há '+qtd+' cliente(s) nesta carteira. Mova-os antes de excluir.', ICONS.alert); return; }
+      if(!confirm('Excluir a carteira "'+cart.nome+'"?')) return;
+      db.carteiras = db.carteiras.filter(c=>c.id!==cart.id);
+      if(state.carteiraFiltro===cart.id) state.carteiraFiltro='todas';
+      toast('Carteira excluída');
+      render();
+      break;
+    }
+    case 'exportCSV': {
+      let csv = 'Cliente,Contrato,Data,Meio,Valor\\n';
+      db.pagamentos.filter(p=>p.parcelaId).forEach(p=>{
+        const cli = db.clientes.find(c=>c.id===p.clienteId);
+        csv += `"${cli.nome}","${p.emprestimoId}","${fmtDate(p.data)}","${meioLabel(p.meio)}","${p.valor.toFixed(2)}"\\n`;
+      });
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'cobrancas_'+new Date().toISOString().slice(0,10)+'.csv';
+      link.click();
+      toast('CSV exportado');
+      break;
+    }
+    case 'exportPDFRelatorio': window.print(); break;
+  }
+}
+
+/* ================= CHARTS ================= */
+let _charts = {};
+function destroyChart(id){ if(_charts[id]){ _charts[id].destroy(); delete _charts[id]; } }
+
+function drawDashboardCharts(){
+  const ctx = document.getElementById('chartArrecadacao');
+  if(!ctx) return;
+  destroyChart('arrecadacao');
+  const days = [...Array(14)].map((_,i)=> addDays(new Date(), -13+i));
+  const totals = days.map(d=> db.pagamentos.filter(p=> new Date(p.data).toDateString()===new Date(d).toDateString()).reduce((s,p)=>s+p.valor,0));
+  _charts.arrecadacao = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: days.map(d=>fmtDateShort(d)), datasets:[{ data: totals, backgroundColor:'#0E9B76', borderRadius:6, maxBarThickness:22 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ grid:{color:'#EEF2EE'}, ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}, x:{grid:{display:false}} } }
+  });
+}
+function drawRelatorioCharts(){
+  const c1 = document.getElementById('chartMensal');
+  if(c1){
+    destroyChart('mensal');
+    const meses = ['Fev','Mar','Abr','Mai','Jun','Jul'];
+    _charts.mensal = new Chart(c1, {
+      type:'line',
+      data:{ labels: meses, datasets:[{ label:'Arrecadado', data:[18000,24500,21000,27800,31200, db.pagamentos.reduce((s,p)=>s+p.valor,0)], borderColor:'#0E9B76', backgroundColor:'rgba(14,155,118,.12)', fill:true, tension:.35, pointRadius:3 }]},
+      options:{ plugins:{legend:{display:false}}, scales:{ y:{grid:{color:'#EEF2EE'}}, x:{grid:{display:false}} } }
+    });
+  }
+  const c2 = document.getElementById('chartModos');
+  if(c2){
+    destroyChart('modos');
+    const counts = {fixo:0, recalculado:0, capitalizacao:0};
+    db.emprestimos.forEach(e=> counts[e.modo]++);
+    _charts.modos = new Chart(c2, {
+      type:'doughnut',
+      data:{ labels:['Fixo','Recalculado','Capitalização'], datasets:[{ data:[counts.fixo,counts.recalculado,counts.capitalizacao], backgroundColor:['#0E9B76','#3E7CFF','#8B6BFF'], borderWidth:0 }]},
+      options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:11}}}}, cutout:'65%' }
+    });
+  }
+  const c3 = document.getElementById('chartProjecao');
+  if(c3){
+    destroyChart('projecao');
+    const dias = [...Array(30)].map((_,i)=> addDays(new Date(), i));
+    let saldo = 0;
+    const projecao = dias.map(d=>{
+      db.emprestimos.forEach(e=> e.parcelas.forEach(p=>{
+        if(p.status!=='pago' && new Date(p.dataVencimento).toDateString()===new Date(d).toDateString()) saldo += p.valor;
+      }));
+      return saldo;
+    });
+    _charts.projecao = new Chart(c3, {
+      type:'line',
+      data:{ labels: dias.map(d=>fmtDateShort(d)), datasets:[{ data: projecao, borderColor:'#FF8C42', backgroundColor:'rgba(255,140,66,.1)', fill:true, tension:.3, pointRadius:0 }]},
+      options:{ plugins:{legend:{display:false}}, scales:{ y:{grid:{color:'#EEF2EE'}, ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k'}}, x:{grid:{display:false}, ticks:{maxTicksLimit:8}} } }
+    });
+  }
+}
+
+/* ================= INIT ================= */
+seedData();
+render();
+</script>
+</body>
+</html>
