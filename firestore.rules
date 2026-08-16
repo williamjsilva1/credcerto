@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ---------- Helpers ---------- */
+    function logado() {
+      return request.auth != null;
+    }
+    function meuPerfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function souAprovado() {
+      return logado()
+        && meuPerfil().aprovado == true
+        && meuPerfil().ativo == true;
+    }
+    function souAdmin() {
+      return logado()
+        && meuPerfil().perfil == 'Administrador'
+        && meuPerfil().aprovado == true
+        && meuPerfil().ativo == true;
+    }
+    function tenhoAcessoACarteira(carteiraId) {
+      return meuPerfil().acessoTodasCarteiras == true
+        || (carteiraId in meuPerfil().carteiraIds);
+    }
+    function carteiraDoCliente(clienteId) {
+      return get(/databases/$(database)/documents/clientes/$(clienteId)).data.carteiraId;
+    }
+    // E-mails que podem se autocadastrar já como Administrador aprovado —
+    // resolve o problema de "quem aprova o primeiro admin". Mantenha esta
+    // lista IGUAL à constante ADMINS_INICIAIS no index.html.
+    function ehAdminInicial() {
+      return request.auth.token.email in ['williamjsilva1@gmail.com'];
+    }
+
+    /* ---------- usuarios/{uid} — o id do documento É o uid do Firebase Auth ---------- */
+    match /usuarios/{uid} {
+      allow read: if logado();
+
+      // autocadastro: qualquer um só cria o PRÓPRIO documento, e só de duas formas —
+      // (a) pendente/Cobrador, como todo mundo; ou (b) já aprovado como Administrador,
+      // mas SÓ se o e-mail (verificado pelo próprio Firebase Auth, não pelo cliente)
+      // estiver na lista ehAdminInicial(). Ninguém mais consegue se autopromover.
+      allow create: if request.auth.uid == uid && (
+        (request.resource.data.aprovado == false && request.resource.data.perfil == 'Cobrador')
+        ||
+        (ehAdminInicial()
+          && request.resource.data.aprovado == true
+          && request.resource.data.perfil == 'Administrador'
+          && request.resource.data.acessoTodasCarteiras == true)
+      );
+
+      // o próprio usuário só pode alterar campos "inofensivos" (ex.: ultimoAcesso,
+      // ultimoPing do heartbeat) — perfil, aprovação e carteiras só um admin muda.
+      allow update: if (
+          request.auth.uid == uid
+          && (
+            (request.resource.data.perfil == resource.data.perfil
+              && request.resource.data.aprovado == resource.data.aprovado
+              && request.resource.data.ativo == resource.data.ativo
+              && request.resource.data.acessoTodasCarteiras == resource.data.acessoTodasCarteiras
+              && request.resource.data.carteiraIds == resource.data.carteiraIds)
+            ||
+            (ehAdminInicial()
+              && request.resource.data.perfil == 'Administrador'
+              && request.resource.data.aprovado == true
+              && request.resource.data.acessoTodasCarteiras == true)
+          )
+        ) || souAdmin();
+
+      allow delete: if souAdmin();
+    }
+
+    /* ---------- clientes/{id} — escopo por carteira ---------- */
+    match /clientes/{id} {
+      allow read:   if souAprovado() && tenhoAcessoACarteira(resource.data.carteiraId);
+      allow create: if souAprovado() && tenhoAcessoACarteira(request.resource.data.carteiraId);
+      allow update: if souAprovado()
+        && tenhoAcessoACarteira(resource.data.carteiraId)
+        && tenhoAcessoACarteira(request.resource.data.carteiraId);
+      allow delete: if souAprovado() && tenhoAcessoACarteira(resource.data.carteiraId);
+    }
+
+    /* ---------- emprestimos/{id} — escopo pela carteira do cliente vinculado ---------- */
+    match /emprestimos/{id} {
+      allow read:   if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(resource.data.clienteId));
+      allow create: if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(request.resource.data.clienteId));
+      allow update: if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(resource.data.clienteId));
+      allow delete: if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(resource.data.clienteId));
+    }
+
+    /* ---------- pagamentos/{id} — mesmo escopo, pela carteira do cliente ---------- */
+    match /pagamentos/{id} {
+      allow read:   if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(resource.data.clienteId));
+      allow create: if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(request.resource.data.clienteId));
+      allow update: if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(resource.data.clienteId));
+      allow delete: if souAprovado() && tenhoAcessoACarteira(carteiraDoCliente(resource.data.clienteId));
+    }
+
+    /* ---------- carteiras/{id} — qualquer aprovado lê; só admin cria/edita/exclui ---------- */
+    match /carteiras/{id} {
+      allow read: if souAprovado();
+      allow write: if souAdmin();
+    }
+
+    /* ---------- cobradores/{id} — mesma regra das carteiras ---------- */
+    match /cobradores/{id} {
+      allow read: if souAprovado();
+      allow write: if souAdmin();
+    }
+
+    /* Qualquer coleção não listada acima fica bloqueada por padrão. */
+  }
+}
